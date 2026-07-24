@@ -1,0 +1,861 @@
+:root {
+  --background: #f6f7fb;
+  --surface: #ffffff;
+  --surface-soft: #f1f3f8;
+  --surface-blue: #eef1ff;
+  --ink: #171a22;
+  --ink-soft: #626778;
+  --line: #dfe2ec;
+  --line-strong: #c8ccda;
+  --primary: #2946c7;
+  --primary-dark: #1f36a1;
+  --primary-soft: #dfe4ff;
+  --mint: #7ce5df;
+  --mint-soft: #def9f6;
+  --mint-ink: #006462;
+  --coral: #d74f43;
+  --coral-soft: #ffdfda;
+  --error: #bd302b;
+  --shadow-sm: 0 8px 24px rgba(34, 49, 113, 0.07);
+  --shadow-md: 0 20px 56px rgba(34, 49, 113, 0.12);
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--background);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(124, 229, 223, 0.12), transparent 27rem),
+    radial-gradient(circle at 90% 5%, rgba(41, 70, 199, 0.09), transparent 31rem),
+    var(--background);
+  color: var(--ink);
+  font-family:
+    Pretendard,
+    "Pretendard Variable",
+    "Noto Sans KR",
+    "Apple SD Gothic Neo",
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+button,
+input,
+textarea {
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+button,
+label,
+input[type="radio"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled),
+label {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(41, 70, 199, 0.28);
+  outline-offset: 3px;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.site-shell {
+  min-height: 100dvh;
+}
+
+.app-header {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  display: flex;
+  width: min(1180px, calc(100% - 48px));
+  min-height: 82px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 auto;
+  border-bottom: 1px solid rgba(200, 204, 218, 0.62);
+  background: rgba(246, 247, 251, 0.82);
+  backdrop-filter: blur(18px);
+}
+
+.brand {
+  display: inline-flex;
+  min-width: 190px;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.brand > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.brand strong {
+  color: var(--primary);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.brand small {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.logo-mark {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5px;
+  border-radius: 14px;
+  background: var(--primary);
+  box-shadow: 0 8px 20px rgba(41, 70, 199, 0.2);
+}
+
+.logo-mark > span {
+  display: block;
+  width: 3px;
+  border-radius: 99px;
+  background: #fff;
+}
+
+.desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(223, 226, 236, 0.85);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.desktop-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.desktop-nav button:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.desktop-nav button.is-active {
+  background: var(--surface);
+  box-shadow: 0 2px 12px rgba(35, 45, 88, 0.09);
+  color: var(--primary);
+}
+
+.local-badge {
+  display: inline-flex;
+  min-width: 96px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--mint-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.app-main {
+  width: min(1180px, calc(100% - 48px));
+  min-height: calc(100dvh - 82px);
+  margin: 0 auto;
+  padding: 44px 0 72px;
+  outline: none;
+}
+
+.record-layout {
+  display: grid;
+  min-height: calc(100dvh - 198px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(390px, 0.8fr);
+  align-items: center;
+  gap: clamp(46px, 7vw, 96px);
+}
+
+.intro-column {
+  max-width: 610px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+.intro-column h1,
+.focus-panel h1,
+.result-hero h1,
+.editor-screen h1,
+.section-heading h1 {
+  margin: 14px 0 14px;
+  color: var(--ink);
+  font-size: clamp(36px, 4.2vw, 58px);
+  font-weight: 780;
+  letter-spacing: -0.052em;
+  line-height: 1.12;
+  word-break: keep-all;
+}
+
+.lead,
+.focus-panel > p,
+.recording-copy p,
+.editor-lead,
+.section-heading p {
+  max-width: 590px;
+  margin-bottom: 0;
+  color: var(--ink-soft);
+  font-size: 17px;
+  line-height: 1.75;
+  word-break: keep-all;
+}
+
+.style-fieldset {
+  min-width: 0;
+  margin: 36px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.style-fieldset legend {
+  margin-bottom: 12px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.style-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.style-option {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 82px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.58);
+  transition:
+    transform 160ms ease,
+    border 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.style-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.style-option.is-selected {
+  border-color: rgba(41, 70, 199, 0.68);
+  background: var(--surface-blue);
+  box-shadow: 0 8px 22px rgba(41, 70, 199, 0.09);
+}
+
+.style-option input {
+  position: absolute;
+  opacity: 0;
+}
+
+.style-check {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  color: #fff;
+}
+
+.style-option.is-selected .style-check {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.style-option > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.style-option strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.style-option small {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reassurance-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-top: 22px;
+  padding: 15px 17px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.48);
+  color: var(--mint-ink);
+}
+
+.reassurance-note p,
+.ai-review-note p {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.reassurance-note strong,
+.ai-review-note strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.reassurance-note span,
+.ai-review-note span {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.recorder-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 600px;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.95));
+  box-shadow: var(--shadow-md);
+}
+
+.recorder-ambient {
+  position: absolute;
+  z-index: -1;
+  border-radius: 999px;
+  filter: blur(2px);
+}
+
+.ambient-one {
+  top: -120px;
+  right: -80px;
+  width: 300px;
+  height: 300px;
+  background: rgba(124, 229, 223, 0.24);
+}
+
+.ambient-two {
+  bottom: -170px;
+  left: -100px;
+  width: 360px;
+  height: 360px;
+  background: rgba(41, 70, 199, 0.12);
+}
+
+.recorder-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tiny-label {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.selected-style-badge,
+.style-chip,
+.mood-chip,
+.history-meta span,
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  font-weight: 750;
+}
+
+.selected-style-badge {
+  padding: 7px 10px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-size: 11px;
+}
+
+.idle-visual {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  align-content: center;
+  gap: 24px;
+  padding: 36px 0 30px;
+}
+
+.idle-visual p {
+  max-width: 260px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.wave-orb,
+.live-wave-orb {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 38% 32%, #ffffff 0, #edf0ff 50%, #dce2ff 100%);
+  box-shadow:
+    0 18px 50px rgba(41, 70, 199, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.95);
+}
+
+.wave-orb {
+  width: 188px;
+  height: 188px;
+}
+
+.waveform {
+  display: flex;
+  height: 82px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.waveform span {
+  display: block;
+  width: 4px;
+  max-height: 72px;
+  border-radius: 999px;
+  background: var(--primary);
+  transition: height 90ms linear;
+}
+
+.waveform.is-active span {
+  background: linear-gradient(180deg, #5f77e8, var(--primary-dark));
+}
+
+.waveform.is-compact {
+  height: 28px;
+  gap: 2px;
+}
+
+.waveform.is-compact span {
+  width: 2px;
+}
+
+.primary-button,
+.secondary-button,
+.stop-button,
+.danger-button,
+.back-button,
+.text-button,
+.subtle-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.primary-button,
+.secondary-button {
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: 17px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.primary-button {
+  background: var(--primary);
+  box-shadow: 0 11px 24px rgba(41, 70, 199, 0.2);
+  color: #fff;
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--primary-dark);
+  box-shadow: 0 14px 30px rgba(41, 70, 199, 0.25);
+}
+
+.primary-button:active:not(:disabled),
+.secondary-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.secondary-button {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+}
+
+.secondary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.record-start {
+  width: 100%;
+}
+
+.divider-label {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.divider-label span {
+  height: 1px;
+  background: var(--line);
+}
+
+.recorder-card > .secondary-button {
+  width: 100%;
+}
+
+.text-button,
+.subtle-link {
+  width: fit-content;
+  padding: 6px;
+  background: transparent;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.text-button {
+  align-self: center;
+  margin-top: 11px;
+}
+
+.text-button:hover,
+.subtle-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.file-hint {
+  margin: 5px 0 0;
+  color: var(--ink-soft);
+  font-size: 9px;
+  text-align: center;
+}
+
+.focus-panel {
+  display: flex;
+  width: min(720px, 100%);
+  min-height: calc(100dvh - 205px);
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.focus-panel h1 {
+  max-width: 700px;
+  margin-top: 14px;
+  font-size: clamp(34px, 5vw, 52px);
+}
+
+.focus-panel > p,
+.recording-copy p {
+  max-width: 560px;
+  text-align: center;
+}
+
+.focus-panel-head,
+.editor-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: auto;
+}
+
+.back-button {
+  min-height: 40px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.back-button:hover {
+  color: var(--ink);
+}
+
+.live-badge {
+  padding: 8px 11px;
+  background: var(--coral-soft);
+  color: var(--error);
+  font-size: 11px;
+}
+
+.live-badge > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  animation: pulse-live 1.4s ease-in-out infinite;
+  background: var(--error);
+}
+
+@keyframes pulse-live {
+  50% {
+    opacity: 0.38;
+    transform: scale(0.72);
+  }
+}
+
+.recording-copy {
+  display: grid;
+  justify-items: center;
+  margin-top: 26px;
+}
+
+.recording-copy h1 {
+  margin-bottom: 12px;
+}
+
+.live-wave-orb {
+  position: relative;
+  width: clamp(220px, 32vw, 292px);
+  height: clamp(220px, 32vw, 292px);
+  margin: 42px 0 22px;
+}
+
+.live-wave-orb::before,
+.live-wave-orb::after {
+  position: absolute;
+  content: "";
+  border: 1px solid rgba(41, 70, 199, 0.14);
+  border-radius: 999px;
+  animation: ripple 2.8s ease-out infinite;
+  inset: -17px;
+}
+
+.live-wave-orb::after {
+  animation-delay: 1.4s;
+}
+
+@keyframes ripple {
+  from {
+    opacity: 0.7;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.14);
+  }
+}
+
+.recording-timer {
+  color: var(--primary);
+  font-size: 37px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.recording-tip,
+.privacy-inline,
+.autosave-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.recording-tip {
+  margin-top: 18px;
+}
+
+.stop-button {
+  min-height: 64px;
+  margin-top: 34px;
+  padding: 0 30px 0 10px;
+  border-radius: 999px;
+  background: var(--ink);
+  box-shadow: 0 16px 36px rgba(23, 26, 34, 0.2);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.stop-button span {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--coral);
+}
+
+.stop-button:hover {
+  transform: translateY(-2px);
+  background: #000;
+}
+
+.processing-panel {
+  min-height: calc(100dvh - 165px);
+}
+
+.processing-visual {
+  position: relative;
+  display: grid;
+  width: 190px;
+  height: 190px;
+  place-items: center;
+  margin-bottom: 36px;
+}
+
+.spark-core {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  border-radius: 32px;
+  animation: float-soft 2.3s ease-in-out infinite;
+  background: var(--primary);
+  box-shadow: 0 18px 42px rgba(41, 70, 199, 0.26);
+  color: #fff;
+}
+
+@keyframes float-soft {
+  50% {
+    transform: translateY(-7px) rotate(2deg);
+  }
+}
+
+.orbit {
+  position: absolute;
+  border: 1px solid rgba(41, 70, 199, 0.16);
+  border-radius: 999px;
+  inset: 11px;
+}
+
+.orbit::after {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  content: "";
+  border-radius: 999px;
+  background: var(--mint);
+  box-shadow: 0 0 0 7px rgba(124, 229, 223, 0.16);
+  left: 50%;
+  top: -6px;
+}
+
+.orbit-one {
+  animation: orbit-spin 5×Í5¶‰žËkºwµçP¤ì(€™½¹ÐµÍ¥é”è€ÄÅÁàì(€™½¹ÐµÙ…É¥…¹Ðµ¹Õµ•É¥ŒèÑ…‰Õ±…Èµ¹ÕµÌì(€™½¹ÐµÝ•¥¡Ðè€ÜÀÀì)ô((¹…ÕÑ½Í…Ù”µ¹½Ñ”ì(€µ…É¥¸µÑ½Àè€ÄÁÁàì(€½±½ÈèÙ…È ´µµ¥¹Ðµ¥¹¬¤ì)ô((¹Í•Ñ¥½¸µ¡•…‘¥¹œì(€‘¥ÍÁ±…äè™±•àì(€…±¥¸µ¥Ñ•µÌè™±•àµ•¹ì(€©ÕÍÑ¥™äµ½¹Ñ•¹ÐèÍÁ…”µ‰•ÑÝ••¸ì(€…Àè€ÈÑÁàì(€µ…É¥¸è€áÁà€À€ÌÁÁàì)ô((¹Í•Ñ¥½¸µ¡•…‘¥¹œ Äì(€µ…É¥¸è€ÄÁÁà€À€áÁàì(€™½¹ÐµÍ¥é”è±…µÀ ÌÍÁà°€Ð¸áÙÜ°€ÐáÁà¤ì)ô((¹Í•Ñ¥½¸µ¡•…‘¥¹œÀì(€™½¹ÐµÍ¥é”è€ÄÑÁàì)ô((¹½µÁ…Ðµ‰ÕÑÑ½¸ì(€™±•àè€À€À…ÕÑ¼ì(€µ¥¸µ¡•¥¡Ðè€ÐÙÁàì)ô((¹•µÁÑäµÍÑ…Ñ”ì(€‘¥ÍÁ±…äè™±•àì(€µ¥¸µ¡•¥¡Ðè€ÐàÁÁàì(€…±¥¸µ¥Ñ•µÌè•¹Ñ•Èì(€™±•àµ‘¥É•Ñ¥½¸è½±Õµ¸ì(€©ÕÍÑ¥™äµ½¹Ñ•¹Ðè•¹Ñ•Èì(€Á…‘‘¥¹œè€ÐÁÁàì(€‰½É‘•Èè€ÅÁà‘…Í¡•Ù…È ´µ±¥¹”µÍÑÉ½¹œ¤ì(€‰½É‘•ÈµÉ…‘¥ÕÌèÙ…È ´µÉ…‘¥ÕÌµ±œ¤ì(€‰…­É½Õ¹èÉ‰„ ÈÔÔ°€ÈÔÔ°€ÈÔÔ°€À¸ÐÔ¤ì(€Ñ•áÐµ…±¥¸è•¹Ñ•Èì)ô((¹•µÁÑäµ¥±±ÕÍÑÉ…Ñ¥½¸ì(€‘¥ÍÁ±…äèÉ¥ì(€Ý¥‘Ñ è€àÉÁàì(€¡•¥¡Ðè€àÉÁàì(€Á±…”µ¥Ñ•µÌè•¹Ñ•Èì(€µ…É¥¸µ‰½ÑÑ½´è€ÈÁÁàì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÈáÁàì(€‰…­É½Õ¹èÙ…È ´µÁÉ¥µ…ÉäµÍ½™Ð¤ì(€½±½ÈèÙ…È ´µÁÉ¥µ…Éä¤ì)ô((¹•µÁÑäµÍÑ…Ñ” Èì(€µ…É¥¸è€À€À€åÁàì(€™½¹ÐµÍ¥é”è€ÈÉÁàì(€±•ÑÑ•ÈµÍÁ…¥¹œè€´À¸ÀÍ•´ì)ô((¹•µÁÑäµÍÑ…Ñ”Àì(€µ…àµÝ¥‘Ñ è€ÌÌÁÁàì(€µ…É¥¸µ‰½ÑÑ½´è€ÈÕÁàì(€½±½ÈèÙ…È ´µ¥¹¬µÍ½™Ð¤ì(€™½¹ÐµÍ¥é”è€ÄÍÁàì(€±¥¹”µ¡•¥¡Ðè€Ä¸Üì)ô((¹¡¥ÍÑ½Éäµ±¥ÍÐì(€‘¥ÍÁ±…äèÉ¥ì(€…Àè€ÄÉÁàì)ô((¹¡¥ÍÑ½Éäµ…Éì(€‘¥ÍÁ±…äè™±•àì(€…±¥¸µ¥Ñ•µÌè•¹Ñ•Èì(€…Àè€áÁàì(€Á…‘‘¥¹œè€ÄÁÁàì(€‰½É‘•Èè€ÅÁàÍ½±¥Ù…È ´µ±¥¹”¤ì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÈÉÁàì(€‰…­É½Õ¹èÉ‰„ ÈÔÔ°€ÈÔÔ°€ÈÔÔ°€À¸ÜÈ¤ì(€‰½àµÍ¡…‘½Üè€À€ÑÁà€ÄáÁàÉ‰„ ÌÔ°€ÐÔ°€àà°€À¸ÀÐ¤ì(€ÑÉ…¹Í¥Ñ¥½¸è(€€€ÑÉ…¹Í™½É´€ÄØÁµÌ•…Í”°(€€€‰…­É½Õ¹€ÄØÁµÌ•…Í”°(€€€‰½àµÍ¡…‘½Ü€ÄØÁµÌ•…Í”ì)ô((¹¡¥ÍÑ½Éäµ…Éé¡½Ù•Èì(€ÑÉ…¹Í™½É´èÑÉ…¹Í±…Ñ•d ´ÉÁà¤ì(€‰…­É½Õ¹èÙ…È ´µÍÕÉ™…”¤ì(€‰½àµÍ¡…‘½ÜèÙ…È ´µÍ¡…‘½ÜµÍ´¤ì)ô((¹¡¥ÍÑ½Éäµ…Éµµ…¥¸ì(€‘¥ÍÁ±…äèÉ¥ì(€µ¥¸µÝ¥‘Ñ è€Àì(€™±•àè€Äì(€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹Ìè€ÜÙÁàµ¥¹µ…à À°€Å™È¤ì(€…±¥¸µ¥Ñ•µÌèÍÑÉ•Ñ ì(€…Àè€ÄáÁàì(€Á…‘‘¥¹œè€áÁàì(€‰…­É½Õ¹èÑÉ…¹ÍÁ…É•¹Ðì(€Ñ•áÐµ…±¥¸è±•™Ðì)ô((¹¡¥ÍÑ½Éäµ‘…Ñ”ì(€‘¥ÍÁ±…äèÉ¥ì(€Á±…”µ½¹Ñ•¹Ðè•¹Ñ•Èì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄÕÁàì(€‰…­É½Õ¹èÙ…È ´µÍÕÉ™…”µ‰±Õ”¤ì(€½±½ÈèÙ…È ´µÁÉ¥µ…Éäµ‘…É¬¤ì(€Ñ•áÐµ…±¥¸è•¹Ñ•Èì)ô((¹¡¥ÍÑ½Éäµ‘…Ñ”ÍÑÉ½¹œì(€™½¹ÐµÍ¥é”è€ÄÍÁàì)ô((¹¡¥ÍÑ½Éäµ‘…Ñ”Íµ…±°ì(€½±½ÈèÙ…È ´µ¥¹¬µÍ½™Ð¤ì(€™½¹ÐµÍ¥é”è€ÄÁÁàì)ô((¹¡¥ÍÑ½Éäµ½¹Ñ•¹Ðì(€‘¥ÍÁ±…äèÉ¥ì(€µ¥¸µÝ¥‘Ñ è€Àì(€…Àè€ÙÁàì(€Á…‘‘¥¹œè€ÑÁà€Àì)ô((¹¡¥ÍÑ½Éäµµ•Ñ„ì(€‘¥ÍÁ±…äè™±•àì(€…Àè€ÕÁàì)ô((¹¡¥ÍÑ½Éäµµ•Ñ„ÍÁ…¸ì(€Á…‘‘¥¹œè€ÑÁà€ÝÁàì(€‰…­É½Õ¹èÙ…È ´µÍÕÉ™…”µÍ½™Ð¤ì(€½±½ÈèÙ…È ´µ¥¹¬µÍ½™Ð¤ì(€™½¹ÐµÍ¥é”è€åÁàì)ô((¹¡¥ÍÑ½Éäµ½¹Ñ•¹Ð€øÍÑÉ½¹œì(€½Ù•É™±½Üè¡¥‘‘•¸ì(€™½¹ÐµÍ¥é”è€ÄÙÁàì(€Ñ•áÐµ½Ù•É™±½Üè•±±¥ÁÍ¥Ìì(€Ý¡¥Ñ”µÍÁ…”è¹½ÝÉ…Àì)ô((¹¡¥ÍÑ½Éäµ½¹Ñ•¹Ð€øÍÁ…¸é±…ÍÐµ¡¥±ì(€‘¥ÍÁ±…äè€µÝ•‰­¥Ðµ‰½àì(€½Ù•É™±½Üè¡¥‘‘•¸ì(€½±½ÈèÙ…È ´µ¥¹¬µÍ½™Ð¤ì(€™½¹ÐµÍ¥é”è€ÄÉÁàì(€±¥¹”µ¡•¥¡Ðè€Ä¸ÔÔì(€€µÝ•‰­¥Ðµ‰½àµ½É¥•¹ÐèÙ•ÉÑ¥…°ì(€€µÝ•‰­¥Ðµ±¥¹”µ±…µÀè€Èì)ô((¹Í•ÑÑ¥¹ÌµÉ¥ì(€‘¥ÍÁ±…äèÉ¥ì(€…Àè€ÄÉÁàì)ô((¹Í•ÑÑ¥¹Ìµ…Éì(€Á½Í¥Ñ¥½¸èÉ•±…Ñ¥Ù”ì(€‘¥ÍÁ±…äèÉ¥ì(€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹Ìè€ÐáÁàµ¥¹µ…à À°€Å™È¤ì(€…±¥¸µ¥Ñ•µÌè™±•àµÍÑ…ÉÐì(€…Àè€ÄÙÁàì(€Á…‘‘¥¹œè€ÈÍÁàì(€‰½É‘•Èè€ÅÁàÍ½±¥Ù…È ´µ±¥¹”¤ì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÈÉÁàì(€‰…­É½Õ¹èÉ‰„ ÈÔÔ°€ÈÔÔ°€ÈÔÔ°€À¸ÜÈ¤ì)ô((¹Í•ÑÑ¥¹Ìµ¥½¸ì(€‘¥ÍÁ±…äèÉ¥ì(€Ý¥‘Ñ è€ÐáÁàì(€¡•¥¡Ðè€ÐáÁàì(€Á±…”µ¥Ñ•µÌè•¹Ñ•Èì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄÙÁàì(€‰…­É½Õ¹èÙ…È ´µÁÉ¥µ…ÉäµÍ½™Ð¤ì(€½±½ÈèÙ…È ´µÁÉ¥µ…Éä¤ì)ô((¹Í•ÑÑ¥¹Ìµ¥½¸¹µ¥¹Ðì(€‰…­É½Õ¹èÙ…È ´µµ¥¹ÐµÍ½™Ð¤ì(€½±½ÈèÙ…È ´µµ¥¹Ðµ¥¹¬¤ì)ô((¹Í•ÑÑ¥¹Ìµ¥½¸¹½É…°ì(€‰…­É½Õ¹èÙ…È ´µ½É…°µÍ½™Ð¤ì(€½±½ÈèÙ…È ´µ½É…°¤ì)ô((¹Í•ÑÑ¥¹Ìµ…É€ø‘¥Øì(€‘¥ÍÁ±…äèÉ¥ì(€…Àè€ÑÁàì)ô((¹Í•ÑÑ¥¹Ìµ±…‰•°ì(€½±½ÈèÙ…È ´µ¥¹¬µÍ½™Ð¤ì(€™½¹ÐµÍ¥é”è€ÄÁÁàì(€™½¹ÐµÝ•¥¡Ðè€àÀÀì)ô((¹Í•ÑÑ¥¹Ìµ…ÉÍÑÉ½¹œì(€™½¹ÐµÍ¥é”è€ÄÙÁàì)ô((¹Í•ÑÑ¥¹Ìµ…ÉÀì(€µ…àµÝ¥‘Ñ è€ØÈÁÁàì(€µ…É¥¸è€ÍÁà€À€Àì(€½±½ÈèÙ…È ´µ¥¹¬µÍ½™Ð¤ì(€™½¹ÐµÍ¥é”è€ÄÉÁàì(€±¥¹”µ¡•¥¡Ðè€Ä¸ØÔì)ô((¹ÍÑ…ÑÕÌµ‘½Ðì(€Á½Í¥Ñ¥½¸è…‰Í½±ÕÑ”ì(€Ý¥‘Ñ è€ÄÁÁàì(€¡•¥¡Ðè€ÄÁÁàì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ääåÁàì(€‰…­É½Õ¹è€ÜåˆÌäì(€É¥¡Ðè€ÈÑÁàì(€Ñ½Àè€ÈÑÁàì)ô((¹ÍÑ…ÑÕÌµ‘½Ð¹¥ÌµÉ•…‘äì(€‰…­É½Õ¹è€ŒÈÁ„ÄÙ”ì(€‰½àµÍ¡…‘½Üè€À€À€À€ÙÁàÉ‰„ ÌÈ°€ÄØÄ°€ÄÄÀ°€À¸Àä¤ì)ô((¹‘…¹•Èµé½¹”ì(€‘¥ÍÁ±…äè™±•àì(€…±¥¸µ¥Ñ•µÌè•¹Ñ•Èì(€©ÕÍÑ¥™äµ½¹Ñ•¹ÐèÍÁ…”µ‰•ÑÝ••¸ì(€…Àè€ÈÁÁàì(€µ…É¥¸µÑ½Àè€ÌÁÁàì(€Á…‘‘¥¹œè€ÈÁÁà€ÈÉÁàì(€‰½É‘•Èè€ÅÁàÍ½±¥É‰„ Äàä°€Ðà°€ÐÌ°€À¸ÄÜ¤ì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÈÁÁàì(€‰…­É½Õ¹èÉ‰„ ÈÔÔ°€ÈÈÌ°€ÈÄà°€À¸ÌÐ¤ì)ô((¹‘…¹•Èµé½¹”ÍÑÉ½¹œì(€™½¹ÐµÍ¥é”è€ÄÑÁàì)ô((¹‘…¹•Èµé½¹”Àì(€µ…É¥¸è€ÍÁà€À€Àì(€½±½ÈèÙ…È ´µ¥¹¬µÍ½™Ð¤ì(€™½¹ÐµÍ¥é”è€ÄÅÁàì)ô((¹‘…¹•Èµ‰ÕÑÑ½¸ì(€µ¥¸µ¡•¥¡Ðè€ÐÉÁàì(€™±•àè€À€À…ÕÑ¼ì(€Á…‘‘¥¹œè€À€ÄÑÁàì(€‰½É‘•Èè€ÅÁàÍ½±¥É‰„ Äàä°€Ðà°€ÐÌ°€À¸ÈÈ¤ì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄÍÁàì(€‰…­É½Õ¹èÉ‰„ ÈÔÔ°€ÈÔÔ°€ÈÔÔ°€À¸ÜÈ¤ì(€½±½ÈèÙ…È ´µ•ÉÉ½È¤ì(€™½¹ÐµÍ¥é”è€ÄÉÁàì(€™½¹ÐµÝ•¥¡Ðè€àÀÀì)ô((¹‘…¹•Èµ‰ÕÑÑ½¸é¡½Ù•Èé¹½Ð é‘¥Í…‰±•¤ì(€‰…­É½Õ¹è€™™˜ì)ô((¹•ÉÉ½Èµ¥½¸ì(€‘¥ÍÁ±…äèÉ¥ì(€Ý¥‘Ñ è€ÄÄÉÁàì(€¡•¥¡Ðè€ÄÄÉÁàì(€Á±…”µ¥Ñ•µÌè•¹Ñ•Èì(€µ…É¥¸µ‰½ÑÑ½´è€ÌÁÁàì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÌáÁàì)ô((¹•ÉÉ½Èµ…Õ‘¥¼°(¹•ÉÉ½ÈµÁ•Éµ¥ÍÍ¥½¸ì(€‰…­É½Õ¹èÙ…È ´µ½É…°µÍ½™Ð¤ì(€‰½àµÍ¡…‘½Üè€À€ÈÁÁà€ÔÕÁàÉ‰„ ÈÄÔ°€Üä°€ØÜ°€À¸ÄÐ¤ì(€½±½ÈèÙ…È ´µ•ÉÉ½È¤ì)ô((¹•ÉÉ½Èµ½¹¹•Ñ¥½¸°(¹•ÉÉ½Èµ•¹•É…°ì(€‰…­É½Õ¹èÙ…È ´µÁÉ¥µ…ÉäµÍ½™Ð¤ì(€‰½àµÍ¡…‘½Üè€À€ÈÁÁà€ÔÕÁàÉ‰„ ÐÄ°€ÜÀ°€Äää°€À¸ÄÐ¤ì(€½±½ÈèÙ…È ´µÁÉ¥µ…Éä¤ì)ô((¹•ÉÉ½ÈµÁ…¹•° Äì(€µ…É¥¸µ‰½ÑÑ½´è€ÄÉÁàì)ô((¹•ÉÉ½ÈµÑ¥Àì(€‘¥ÍÁ±…äè™±•àì(€Ý¥‘Ñ èµ¥¸ ÔÄÁÁà°€ÄÀÀ”¤ì(€…±¥¸µ¥Ñ•µÌè™±•àµÍÑ…ÉÐì(€…Àè€ÄÁÁàì(€µ…É¥¸µÑ½Àè€ÈÙÁàì(€Á…‘‘¥¹œè€ÄÕÁà€ÄÝÁàì(€‰½É‘•ÈµÉ…‘¥ÕÌèÙ…È ´µÉ…‘¥ÕÌµµ¤ì(€‰…­É½Õ¹èÉ‰„ ÈÔÔ°€ÈÔÔ°€ÈÔÔ°€À¸Ü¤ì(€½±½ÈèÙ…È ´µ¥¹¬µÍ½™Ð¤ì(€™½¹ÐµÍ¥é”è€ÄÉÁàì(€±¥¹”µ¡•¥¡Ðè€Ä¸Øì(€Ñ•áÐµ…±¥¸è±•™Ðì)ô((¹•ÉÉ½ÈµÑ¥ÀÍÙœì(€™±•àè€À€À…ÕÑ¼ì(€½±½ÈèÙ…È ´µÁÉ¥µ…Éä¤ì)ô((¹•ÉÉ½Èµ…Ñ¥½¹Ìì(€‘¥ÍÁ±…äè™±•àì(€µ…àµÝ¥‘Ñ è€ØÈÁÁàì(€™±•àµÝÉ…ÀèÝÉ…Àì(€©ÕÍÑ¥™äµ½¹Ñ•¹Ðè•¹Ñ•Èì(€…Àè€ÄÁÁàì(€µ…É¥¸µÑ½Àè€ÈÝÁàì)ô((¹•ÉÉ½Èµ…Ñ¥½¹Ì€¹ÁÉ¥µ…Éäµ‰ÕÑÑ½¸°(¹•ÉÉ½Èµ…Ñ¥½¹Ì€¹Í•½¹‘…Éäµ‰ÕÑÑ½¸ì(€µ¥¸µÝ¥‘Ñ è€ÄÜÁÁàì)ô((¹•ÉÉ½Èµ…Ñ¥½¹Ì€¹Ñ•áÐµ‰ÕÑÑ½¸ì(€Ý¥‘Ñ è€ÄÀÀ”ì(€µ…É¥¸µÑ½Àè€Àì)ô((¹•ÉÉ½ÈµÁ…¹•°€¹ÍÕ‰Ñ±”µ±¥¹¬ì(€µ…É¥¸µÑ½Àè€ÄÙÁàì)ô((¹µ½‰¥±”µ¹…Øì(€‘¥ÍÁ±…äè¹½¹”ì)ô((¹µ½‘…°µ‰…­‘É½Àì(€Á½Í¥Ñ¥½¸è™¥á•ì(€èµ¥¹‘•àè€àÀì(€‘¥ÍÁ±…äèÉ¥ì(€Á…‘‘¥¹œè€ÈÑÁàì(€‰…­É½Õ¹èÉ‰„ ÄÜ°€ÈÀ°€Èä°€À¸ÐØ¤ì(€‰…­‘É½Àµ™¥±Ñ•Èè‰±ÕÈ áÁà¤ì(€¥¹Í•Ðè€Àì(€Á±…”µ¥Ñ•µÌè•¹Ñ•Èì)ô((¹•áÁ½ÉÐµÍ¡••Ðì(€Ý¥‘Ñ èµ¥¸ ÔÀÁÁà°€ÄÀÀ”¤ì(€Á…‘‘¥¹œè€ÈáÁàì(€‰½É‘•Èè€ÅÁàÍ½±¥É‰„ ÈÔÔ°€ÈÔÔ°€ÈÔÔ°€À¸ä¤ì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÌÁÁàì(€‰…­É½Õ¹èÙ…È ´µÍÕÉ™…”¤ì(€‰½àµÍ¡…‘½Üè€À€ÈÙÁà€äÁÁàÉ‰„ ÄØ°€ÈÈ°€ÔÌ°€À¸ÈØ¤ì(€…¹¥µ…Ñ¥½¸èÍ¡••Ðµ¥¸€ÈÈÁµÌ•…Í”µ½ÕÐì)ô()­•å™É…µ•ÌÍ¡••Ðµ¥¸ì(€™É½´ì(€€€½Á…¥Ñäè€Àì(€€€ÑÉ…¹Í™½É´èÑÉ…¹Í±…Ñ•d ÄÑÁà¤Í…±” À¸äà¤ì(€ô)ô((¹Í¡••Ðµ¡…¹‘±”ì(€‘¥ÍÁ±…äè¹½¹”ì)ô((¹•áÁ½ÉÐµ¡•…ì(€‘¥ÍÁ±…äè™±•àì(€…±¥¸µ¥Ñ•µÌè™±•àµÍÑ…ÉÐì(€©ÕÍÑ¥™äµ½¹Ñ•¹ÐèÍÁ…”µ‰•ÑÝ••¸ì(€…Àè€ÄáÁàì)ô((¹•áÁ½ÉÐµ¡•… Èì(€µ…É¥¸è€ÝÁà€À€Àì(€™½¹ÐµÍ¥é”è€ÈÕÁàì(€±•ÑÑ•ÈµÍÁ…¥¹œè€´À¸ÀÑ•´ì)ô((¹•áÁ½ÉÐµÁÉ•Ù¥•Üì(€µ…É¥¸è€ÈÑÁà€À€ÄÕÁàì(€Á…‘‘¥¹œè€ÄÕÁà€ÄÝÁàì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄÕÁàì(€‰…­É½Õ¹èÙ…È ´µÍÕÉ™…”µÍ½™Ð¤ì(€½±½ÈèÙ…È ´µ¥¹¬¤ì(€™½¹ÐµÍ¥é”è€ÄÍÁàì(€™½¹ÐµÝ•¥¡Ðè€ÜÔÀì)ô((¹•áÁ½ÉÐµ½ÁÑ¥½¹Ìì(€‘¥ÍÁ±…äèÉ¥ì(€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹ÌèÉ•Á•…Ð Ì°€Å™È¤ì(€…Àè€åÁàì(€µ…É¥¸µ‰½ÑÑ½´è€ÄáÁàì)ô((¹•áÁ½ÉÐµ½ÁÑ¥½¹Ì‰ÕÑÑ½¸ì(€‘¥ÍÁ±…äèÉ¥ì(€µ¥¸µ¡•¥¡Ðè€ÄÀÙÁàì(€Á±…”µ¥Ñ•µÌè•¹Ñ•Èì(€Á±…”µ½¹Ñ•¹Ðè•¹Ñ•Èì(€…Àè€åÁàì(€‰½É‘•Èè€ÅÁàÍ½±¥Ù…È ´µ±¥¹”¤ì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄÝÁàì(€‰…­É½Õ¹è€™™˜ì(€½±½ÈèÙ…È ´µ¥¹¬¤ì(€™½¹ÐµÍ¥é”è€ÄÅÁàì(€™½¹ÐµÝ•¥¡Ðè€àÀÀì(€ÑÉ…¹Í¥Ñ¥½¸è(€€€ÑÉ…¹Í™½É´€ÄØÁµÌ•…Í”°(€€€‰½É‘•Èµ½±½È€ÄØÁµÌ•…Í”°(€€€‰…­É½Õ¹€ÄØÁµÌ•…Í”ì)ô((¹•áÁ½ÉÐµ½ÁÑ¥½¹Ì‰ÕÑÑ½¸é¡½Ù•Èì(€ÑÉ…¹Í™½É´èÑÉ…¹Í±…Ñ•d ´ÉÁà¤ì(€‰½É‘•Èµ½±½ÈèÙ…È ´µÁÉ¥µ…Éä¤ì(€‰…­É½Õ¹èÙ…È ´µÍÕÉ™…”µ‰±Õ”¤ì)ô((¹•áÁ½ÉÐµ½ÁÑ¥½¹Ì‰ÕÑÑ½¸ÍÁ…¸ì(€‘¥ÍÁ±…äèÉ¥ì(€Ý¥‘Ñ è€ÐÉÁàì(€¡•¥¡Ðè€ÐÉÁàì(€Á±…”µ¥Ñ•µÌè•¹Ñ•Èì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄÑÁàì(€‰…­É½Õ¹èÙ…È ´µÁÉ¥µ…ÉäµÍ½™Ð¤ì(€½±½ÈèÙ…È ´µÁÉ¥µ…Éä¤ì)ô((¹•áÁ½ÉÐµÍ¡••Ð€ø€¹ÁÉ¥µ…Éäµ‰ÕÑÑ½¸ì(€Ý¥‘Ñ è€ÄÀÀ”ì)ô((¹Ñ½…ÍÐì(€Á½Í¥Ñ¥½¸è™¥á•ì(€èµ¥¹‘•àè€ÄÀÀì(€‘¥ÍÁ±…äè¥¹±¥¹”µ™±•àì(€µ¥¸µ¡•¥¡Ðè€ÐáÁàì(€…±¥¸µ¥Ñ•µÌè•¹Ñ•Èì(€…Àè€åÁàì(€Á…‘‘¥¹œè€À€ÄáÁàì(€‰½É‘•Èè€ÅÁàÍ½±¥É‰„ ÈÔÔ°€ÈÔÔ°€ÈÔÔ°€À¸ÄÐ¤ì(€‰½É‘•ÈµÉ…‘¥ÕÌè€ääåÁàì(€‰…­É½Õ¹èÉ‰„ ÈÐ°€ÈÜ°€ÌØ°€À¸äÐ¤ì(€‰½àµÍ¡…‘½Üè€À€ÄÑÁà€ÐÁÁàÉ‰„ ÄÀ°€ÄÌ°€ÈÔ°€À¸ÈÐ¤ì(€½±½Èè€™™˜ì(€™½¹ÐµÍ¥é”è€ÄÉÁàì(€™½¹ÐµÝ•¥¡Ðè€ÜÔÀì(€±•™Ðè€ÔÀ”ì(€‰½ÑÑ½´è€ÈÙÁàì(€ÑÉ…¹Í™½É´èÑÉ…¹Í±…Ñ•` ´ÔÀ”¤ì)ô((¹Ñ½…ÍÐÍÙœì(€½±½ÈèÙ…È ´µµ¥¹Ð¤ì)ô()µ•‘¥„€¡µ…àµÝ¥‘Ñ è€äÌÁÁà¤ì(€€¹…ÁÀµ¡•…‘•Èì(€€€Ý¥‘Ñ èµ¥¸ ÄÀÀ”€´€ÌÙÁà°€àÈÁÁà¤ì(€ô((€€¹…ÁÀµµ…¥¸ì(€€€Ý¥‘Ñ èµ¥¸ ÄÀÀ”€´€ÌÙÁà°€àÈÁÁà¤ì(€ô((€€¹É•½Éµ±…å½ÕÐì(€€€µ¥¸µ¡•¥¡Ðè…ÕÑ¼ì(€€€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹Ìè€Å™Èì(€€€…Àè€ÌáÁàì(€ô((€€¹¥¹ÑÉ¼µ½±Õµ¸ì(€€€µ…àµÝ¥‘Ñ è€ÜØÁÁàì(€ô((€€¹¥¹ÑÉ¼µ½±Õµ¸ Äì(€€€µ…àµÝ¥‘Ñ è€ØØÁÁàì(€ô((€€¹É•½É‘•Èµ…Éì(€€€µ¥¸µ¡•¥¡Ðè€ÔØÁÁàì(€ô)ô()µ•‘¥„€¡µ…àµÝ¥‘Ñ è€ÜÈÁÁà¤ì(€‰½‘äì(€€€‰…­É½Õ¹è(€€€€€É…‘¥…°µÉ…‘¥•¹Ð¡¥É±”…Ð€äÀ”€Ð”°É‰„ ÐÄ°€ÜÀ°€Äää°€À¸Àà¤°ÑÉ…¹ÍÁ…É•¹Ð€ÈÁÉ•´¤°(€€€€€Ù…È ´µ‰…­É½Õ¹¤ì(€ô((€€¹Í¥Ñ”µÍ¡•±°ì(€€€Á…‘‘¥¹œµ‰½ÑÑ½´è…±Œ ÜÙÁà€¬•¹Ø¡Í…™”µ…É•„µ¥¹Í•Ðµ‰½ÑÑ½´¤¤ì(€ô((€€¹…ÁÀµ¡•…‘•Èì(€€€Ý¥‘Ñ è€ÄÀÀ”ì(€€€µ¥¸µ¡•¥¡Ðè€ØÙÁàì(€€€Á…‘‘¥¹œè€À€ÈÁÁàì(€€€‰½É‘•Èµ‰½ÑÑ½´µ½±½ÈèÉ‰„ ÈÈÌ°€ÈÈØ°€ÈÌØ°€À¸Üà¤ì(€ô((€€¹‰É…¹ì(€€€µ¥¸µÝ¥‘Ñ è€Àì(€ô((€€¹‰É…¹€øÍÁ…¸é±…ÍÐµ¡¥±Íµ…±°°(€€¹‘•Í­Ñ½Àµ¹…Ø°(€€¹±½…°µ‰…‘”ì(€€€‘¥ÍÁ±…äè¹½¹”ì(€ô((€€¹‰É…¹ÍÑÉ½¹œì(€€€™½¹ÐµÍ¥é”è€ÈÁÁàì(€ô((€€¹±½¼µµ…É¬ì(€€€Ý¥‘Ñ è€ÌÙÁàì(€€€¡•¥¡Ðè€ÌÙÁàì(€€€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄÉÁàì(€ô((€€¹…ÁÀµµ…¥¸ì(€€€Ý¥‘Ñ è€ÄÀÀ”ì(€€€µ¥¸µ¡•¥¡Ðè…±Œ ÄÀÁ‘Ù €´€ÄÐÉÁà¤ì(€€€Á…‘‘¥¹œè€ÈáÁà€ÈÁÁà€ÌÁÁàì(€ô((€€¹É•½Éµ±…å½ÕÐì(€€€…Àè€ÈáÁàì(€ô((€€¹¥¹ÑÉ¼µ½±Õµ¸ Ä°(€€¹™½ÕÌµÁ…¹•° Ä°(€€¹É•ÍÕ±Ðµ¡•É¼ Ä°(€€¹•‘¥Ñ½ÈµÍÉ••¸ Ä°(€€¹Í•Ñ¥½¸µ¡•…‘¥¹œ Äì(€€€™½¹ÐµÍ¥é”è€ÌÑÁàì(€€€±¥¹”µ¡•¥¡Ðè€Ä¸ÄÜì(€ô((€€¹±•…°(€€¹™½ÕÌµÁ…¹•°€øÀ°(€€¹É•½É‘¥¹œµ½ÁäÀ°(€€¹•‘¥Ñ½Èµ±•…ì(€€€™½¹ÐµÍ¥é”è€ÄÕÁàì(€€€±¥¹”µ¡•¥¡Ðè€Ä¸Üì(€ô((€€¹ÍÑå±”µ™¥•±‘Í•Ðì(€€€µ…É¥¸µÑ½Àè€ÈáÁàì(€ô((€€¹ÍÑå±”µ½ÁÑ¥½¹Ìì(€€€‘¥ÍÁ±…äè™±•àì(€€€…Àè€áÁàì(€€€½Ù•É™±½Üµàè…ÕÑ¼ì(€€€Á…‘‘¥¹œè€ÉÁà€ÉÁà€áÁàì(€€€ÍÉ½±±‰…ÈµÝ¥‘Ñ è¹½¹”ì(€ô((€€¹ÍÑå±”µ½ÁÑ¥½¹ÌèèµÝ•‰­¥ÐµÍÉ½±±‰…Èì(€€€‘¥ÍÁ±…äè¹½¹”ì(€ô((€€¹ÍÑå±”µ½ÁÑ¥½¸ì(€€€µ¥¸µÝ¥‘Ñ è€ÄÌáÁàì(€€€µ¥¸µ¡•¥¡Ðè€ØáÁàì(€€€Á…‘‘¥¹œè€ÄÅÁà€ÄÁÁàì(€€€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄÙÁàì(€ô((€€¹É•…ÍÍÕÉ…¹”µ¹½Ñ”ì(€€€µ…É¥¸µÑ½Àè€ÄÍÁàì(€ô((€€¹É•½É‘•Èµ…Éì(€€€µ¥¸µ¡•¥¡Ðè€ÔÈÁÁàì(€€€Á…‘‘¥¹œè€ÈÉÁàì(€€€‰½É‘•ÈµÉ…‘¥ÕÌè€ÌÁÁàì(€ô((€€¹Ý…Ù”µ½Éˆì(€€€Ý¥‘Ñ è€ÄØÕÁàì(€€€¡•¥¡Ðè€ÄØÕÁàì(€ô((€€¹™½ÕÌµÁ…¹•°ì(€€€µ¥¸µ¡•¥¡Ðè…±Œ ÄÀÁ‘Ù €´€ÄàÍÁà¤ì(€ô((€€¹™½ÕÌµÁ…¹•°µ¡•…ì(€€€µ…É¥¸µ‰½ÑÑ½´è€ÈÉÁàì(€ô((€€¹É•½É‘¥¹œµ½Áäì(€€€µ…É¥¸µÑ½Àè€Àì(€ô((€€¹±¥Ù”µÝ…Ù”µ½Éˆì(€€€Ý¥‘Ñ è€ÈÄÁÁàì(€€€¡•¥¡Ðè€ÈÄÁÁàì(€€€µ…É¥¸è€ÌÑÁà€À€ÄáÁàì(€ô((€€¹É•½É‘¥¹œµÑ¥µ•Èì(€€€™½¹ÐµÍ¥é”è€ÌÉÁàì(€ô((€€¹É•½É‘¥¹œµÑ¥Àì(€€€µ…àµÝ¥‘Ñ è€ÈäÁÁàì(€€€…±¥¸µ¥Ñ•µÌè™±•àµÍÑ…ÉÐì(€€€Ñ•áÐµ…±¥¸è±•™Ðì(€ô((€€¹ÍÑ½Àµ‰ÕÑÑ½¸ì(€€€µ…É¥¸µÑ½Àè€ÈáÁàì(€ô((€€¹ÁÉ½•ÍÍ¥¹œµÙ¥ÍÕ…°ì(€€€Ý¥‘Ñ è€ÄØÕÁàì(€€€¡•¥¡Ðè€ÄØÕÁàì(€€€µ…É¥¸µ‰½ÑÑ½´è€ÈáÁàì(€ô((€€¹ÍÁ…É¬µ½É”ì(€€€Ý¥‘Ñ è€àÙÁàì(€€€¡•¥¡Ðè€àÙÁàì(€ô((€€¹ÁÉ¥Ù…äµ¥¹±¥¹”ì(€€€µ…àµÝ¥‘Ñ è€ÌÈÁÁàì(€€€…±¥¸µ¥Ñ•µÌè™±•àµÍÑ…ÉÐì(€€€Ñ•áÐµ…±¥¸è±•™Ðì(€ô((€€¹É•ÍÕ±Ðµ¡•É¼ì(€€€…±¥¸µ¥Ñ•µÌè™±•àµÍÑ…ÉÐì(€€€…Àè€ÄÕÁàì(€€€µ…É¥¸µÑ½Àè€ÉÁàì(€ô((€€¹½µÁ±•Ñ¥½¸µµ…É¬ì(€€€Ý¥‘Ñ è€ÔÑÁàì(€€€¡•¥¡Ðè€ÔÑÁàì(€€€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄáÁàì(€ô((€€¹É•ÍÕ±Ðµ¡•É¼ Äì(€€€µ…É¥¸µÑ½Àè€ÙÁàì(€ô((€€¹‘¥…ÉäµÁ…Á•Èì(€€€Á…‘‘¥¹œè€ÈÙÁà€ÈÍÁàì(€€€‰½É‘•ÈµÉ…‘¥ÕÌè€ÈÑÁàì(€ô((€€¹‘¥…ÉäµÁ…Á•È Èì(€€€µ…É¥¸µÑ½Àè€ÈÑÁàì(€€€™½¹ÐµÍ¥é”è€ÈÙÁàì(€ô((€€¹‘¥…Éäµ‰½‘äÀì(€€€™½¹ÐµÍ¥é”è€ÄÙÁàì(€€€±¥¹”µ¡•¥¡Ðè€Ä¸àØì(€ô((€€¹É•ÍÕ±Ðµ…Ñ¥½¹Ì°(€€¹•‘¥Ñ½Èµ…Ñ¥½¹Ìì(€€€‘¥ÍÁ±…äèÉ¥ì(€€€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹ÌèÉ•Á•…Ð È°µ¥¹µ…à À°€Å™È¤¤ì(€ô((€€¹É•ÍÕ±Ðµ…Ñ¥½¹Ì€¹ÁÉ¥µ…Éäµ‰ÕÑÑ½¸ì(€€€É¥µ½±Õµ¸è€Ä€¼€´Äì(€€€µ…É¥¸µ±•™Ðè€Àì(€€€½É‘•Èè€´Äì(€ô((€€¹•‘¥Ñ½Èµ¡•…ì(€€€µ…É¥¸µ‰½ÑÑ½´è€ÈÁÁàì(€ô((€€¹•‘¥Ñ½Èµ‰½‘äµ™¥•±°(€€¹•‘¥Ñ½Èµ‰½‘äµ™¥•±Ñ•áÑ…É•„ì(€€€µ¥¸µ¡•¥¡Ðè€ÌÐÁÁàì(€ô((€€¹•‘¥Ñ½Èµ‰½‘äµ™¥•±Ñ•áÑ…É•„ì(€€€Á…‘‘¥¹œè€ÈÉÁà€ÈÅÁà€ÔÁÁàì(€€€™½¹ÐµÍ¥é”è€ÄÙÁàì(€ô((€€¹•‘¥Ñ½Èµ…Ñ¥½¹Ì€¹ÁÉ¥µ…Éäµ‰ÕÑÑ½¸°(€€¹•‘¥Ñ½Èµ…Ñ¥½¹Ì€¹Í•½¹‘…Éäµ‰ÕÑÑ½¸ì(€€€Á…‘‘¥¹œè€À€ÄÉÁàì(€€€™½¹ÐµÍ¥é”è€ÄÉÁàì(€ô((€€¹Í•Ñ¥½¸µ¡•…‘¥¹œì(€€€…±¥¸µ¥Ñ•µÌè™±•àµÍÑ…ÉÐì(€€€™±•àµ‘¥É•Ñ¥½¸è½±Õµ¸ì(€€€…Àè€ÄáÁàì(€ô((€€¹Í•Ñ¥½¸µ¡•…‘¥¹œ€¹½µÁ…Ðµ‰ÕÑÑ½¸ì(€€€…±¥¸µÍ•±˜èÍÑÉ•Ñ ì(€ô((€€¹¡¥ÍÑ½Éäµ…Éµµ…¥¸ì(€€€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹Ìè€ØÑÁàµ¥¹µ…à À°€Å™È¤ì(€€€…Àè€ÄÉÁàì(€€€Á…‘‘¥¹œè€ÕÁàì(€ô((€€¹¡¥ÍÑ½Éäµ‘…Ñ”ì(€€€µ¥¸µ¡•¥¡Ðè€ÜÑÁàì(€ô((€€¹Í•ÑÑ¥¹Ìµ…Éì(€€€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹Ìè€ÐÑÁàµ¥¹µ…à À°€Å™È¤ì(€€€…Àè€ÄÍÁàì(€€€Á…‘‘¥¹œè€ÄåÁàì(€ô((€€¹Í•ÑÑ¥¹Ìµ¥½¸ì(€€€Ý¥‘Ñ è€ÐÑÁàì(€€€¡•¥¡Ðè€ÐÑÁàì(€ô((€€¹‘…¹•Èµé½¹”ì(€€€…±¥¸µ¥Ñ•µÌè™±•àµÍÑ…ÉÐì(€€€™±•àµ‘¥É•Ñ¥½¸è½±Õµ¸ì(€ô((€€¹‘…¹•Èµ‰ÕÑÑ½¸ì(€€€Ý¥‘Ñ è€ÄÀÀ”ì(€ô((€€¹•ÉÉ½Èµ¥½¸ì(€€€Ý¥‘Ñ è€äÙÁàì(€€€¡•¥¡Ðè€äÙÁàì(€€€‰½É‘•ÈµÉ…‘¥ÕÌè€ÌÉÁàì(€ô((€€¹•ÉÉ½Èµ…Ñ¥½¹Ìì(€€€‘¥ÍÁ±…äèÉ¥ì(€€€Ý¥‘Ñ è€ÄÀÀ”ì(€€€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹Ìè€Å™Èì(€ô((€€¹•ÉÉ½Èµ…Ñ¥½¹Ì€¹ÁÉ¥µ…Éäµ‰ÕÑÑ½¸°(€€¹•ÉÉ½Èµ…Ñ¥½¹Ì€¹Í•½¹‘…Éäµ‰ÕÑÑ½¸ì(€€€Ý¥‘Ñ è€ÄÀÀ”ì(€ô((€€¹µ½‰¥±”µ¹…Øì(€€€Á½Í¥Ñ¥½¸è™¥á•ì(€€€èµ¥¹‘•àè€ÔÀì(€€€‘¥ÍÁ±…äèÉ¥ì(€€€¡•¥¡Ðè…±Œ ÜÁÁà€¬•¹Ø¡Í…™”µ…É•„µ¥¹Í•Ðµ‰½ÑÑ½´¤¤ì(€€€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹ÌèÉ•Á•…Ð Ì°€Å™È¤ì(€€€Á…‘‘¥¹œè€ÝÁà€ÄáÁà•¹Ø¡Í…™”µ…É•„µ¥¹Í•Ðµ‰½ÑÑ½´¤ì(€€€‰½É‘•ÈµÑ½Àè€ÅÁàÍ½±¥É‰„ ÈÈÌ°€ÈÈØ°€ÈÌØ°€À¸äÈ¤ì(€€€‰…­É½Õ¹èÉ‰„ ÈÔÔ°€ÈÔÔ°€ÈÔÔ°€À¸äÐ¤ì(€€€‰½àµÍ¡…‘½Üè€À€´ÄÁÁà€ÌÁÁàÉ‰„ ÌÄ°€ÐÀ°€àÀ°€À¸ÀÜ¤ì(€€€‰…­‘É½Àµ™¥±Ñ•Èè‰±ÕÈ ÄáÁà¤ì(€€€‰½ÑÑ½´è€Àì(€€€±•™Ðè€Àì(€€€É¥¡Ðè€Àì(€ô((€€¹µ½‰¥±”µ¹…Ø‰ÕÑÑ½¸ì(€€€‘¥ÍÁ±…äèÉ¥ì(€€€Á±…”µ¥Ñ•µÌè•¹Ñ•Èì(€€€Á±…”µ½¹Ñ•¹Ðè•¹Ñ•Èì(€€€…Àè€ÍÁàì(€€€‰½É‘•ÈµÉ…‘¥ÕÌè€ÄÕÁàì(€€€‰…­É½Õ¹èÑÉ…¹ÍÁ…É•¹Ðì(€€€½±½ÈèÙ…È ´µ¥¹¬µÍ½™Ð¤ì(€€€™½¹ÐµÍ¥é”è€ÄÁÁàì(€€€™½¹ÐµÝ•¥¡Ðè€ÜÔÀì(€ô((€€¹µ½‰¥±”µ¹…Ø‰ÕÑÑ½¸¹¥Ìµ…Ñ¥Ù”ì(€€€‰…­É½Õ¹èÙ…È ´µÍÕÉ™…”µ‰±Õ”¤ì(€€€½±½ÈèÙ…È ´µÁÉ¥µ…Éä¤ì(€ô((€€¹µ½‘…°µ‰…­‘É½Àì(€€€…±¥¸µ¥Ñ•µÌè•¹ì(€€€Á…‘‘¥¹œè€Àì(€ô((€€¹•áÁ½ÉÐµÍ¡••Ðì(€€€Ý¥‘Ñ è€ÄÀÀ”ì(€€€Á…‘‘¥¹œè€ÄÉÁà€ÈÁÁà…±Œ ÈÑÁà€¬•¹Ø¡Í…™”µ…É•„µ¥¹Í•Ðµ‰½ÑÑ½´¤¤ì(€€€‰½É‘•ÈµÉ…‘¥ÕÌè€ÈáÁà€ÈáÁà€À€Àì(€€€…¹¥µ…Ñ¥½¸µ¹…µ”èµ½‰¥±”µÍ¡••Ðµ¥¸ì(€ô((€­•å™É…µ•Ìµ½‰¥±”µÍ¡••Ðµ¥¸ì(€€€™É½´ì(€€€€€ÑÉ…¹Í™½É´èÑÉ…¹Í±…Ñ•d ÄÀÀ”¤ì(€€€ô(€ô((€€¹Í¡••Ðµ¡…¹‘±”ì(€€€‘¥ÍÁ±…äè‰±½¬ì(€€€Ý¥‘Ñ è€ÌáÁàì(€€€¡•¥¡Ðè€ÑÁàì(€€€µ…É¥¸è€À…ÕÑ¼€ÄáÁàì(€€€‰½É‘•ÈµÉ…‘¥ÕÌè€äåÁàì(€€€‰…­É½Õ¹èÙ…È ´µ±¥¹”µÍÑÉ½¹œ¤ì(€ô((€€¹Ñ½…ÍÐì(€€€Ý¥‘Ñ èµ…àµ½¹Ñ•¹Ðì(€€€µ…àµÝ¥‘Ñ è…±Œ ÄÀÀ”€´€ÌÙÁà¤ì(€€€©ÕÍÑ¥™äµ½¹Ñ•¹Ðè•¹Ñ•Èì(€€€‰½ÑÑ½´è…±Œ àÉÁà€¬•¹Ø¡Í…™”µ…É•„µ¥¹Í•Ðµ‰½ÑÑ½´¤¤ì(€€€Ñ•áÐµ…±¥¸è•¹Ñ•Èì(€ô)ô()µ•‘¥„€¡µ…àµÝ¥‘Ñ è€ÌäÁÁà¤ì(€€¹…ÁÀµµ…¥¸ì(€€€Á…‘‘¥¹œµÉ¥¡Ðè€ÄÙÁàì(€€€Á…‘‘¥¹œµ±•™Ðè€ÄÙÁàì(€ô((€€¹¥¹ÑÉ¼µ½±Õµ¸ Ä°(€€¹™½ÕÌµÁ…¹•° Ä°(€€¹É•ÍÕ±Ðµ¡•É¼ Ä°(€€¹•‘¥Ñ½ÈµÍÉ••¸ Ä°(€€¹Í•Ñ¥½¸µ¡•…‘¥¹œ Äì(€€€™½¹ÐµÍ¥é”è€ÌÁÁàì(€ô((€€¹ÍÑå±”µ½ÁÑ¥½¸ì(€€€µ¥¸µÝ¥‘Ñ è€ÄÈáÁàì(€ô((€€¹É•½É‘•Èµ…Éì(€€€µ¥¸µ¡•¥¡Ðè€ÔÀÁÁàì(€€€Á…‘‘¥¹œè€ÄåÁàì(€ô((€€¹Á…Á•Èµµ•Ñ„ì(€€€…±¥¸µ¥Ñ•µÌè™±•àµÍÑ…ÉÐì(€€€™±•àµ‘¥É•Ñ¥½¸è½±Õµ¸ì(€ô((€€¹É•ÍÕ±Ðµ…Ñ¥½¹Ì°(€€¹•‘¥Ñ½Èµ…Ñ¥½¹Ìì(€€€É¥µÑ•µÁ±…Ñ”µ½±Õµ¹Ìè€Å™Èì(€ô((€€¹É•ÍÕ±Ðµ…Ñ¥½¹Ì€¹ÁÉ¥µ…Éäµ‰ÕÑÑ½¸ì(€€€É¥µ½±Õµ¸è…ÕÑ¼ì(€ô((€€¹•áÁ½ÉÐµ½ÁÑ¥½¹Ìì(€€€…Àè€ÙÁàì(€ô((€€¹•áÁ½ÉÐµ½ÁÑ¥½¹Ì‰ÕÑÑ½¸ì(€€€µ¥¸µ¡•¥¡Ðè€ÄÀÁÁàì(€€€Á…‘‘¥¹œè€áÁà€ÑÁàì(€ô)ô()µ•‘¥„€¡ÁÉ•™•ÉÌµÉ•‘Õ•µµ½Ñ¥½¸èÉ•‘Õ”¤ì(€€¨°(€€¨èé‰•™½É”°(€€¨èé…™Ñ•Èì(€€€ÍÉ½±°µ‰•¡…Ù¥½Èè…ÕÑ¼€…¥µÁ½ÉÑ…¹Ðì(€€€…¹¥µ…Ñ¥½¸µ‘ÕÉ…Ñ¥½¸è€À¸ÀÅµÌ€…¥µÁ½ÉÑ…¹Ðì(€€€…¹¥µ…Ñ¥½¸µ¥Ñ•É…Ñ¥½¸µ½Õ¹Ðè€Ä€…¥µÁ½ÉÑ…¹Ðì(€€€ÑÉ…¹Í¥Ñ¥½¸µ‘ÕÉ…Ñ¥½¸è€À¸ÀÅµÌ€…¥µÁ½ÉÑ…¹Ðì(€ô)ô
