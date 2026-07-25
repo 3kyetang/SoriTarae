@@ -61,7 +61,7 @@ npm.cmd run dev
 
 ## 지원 범위
 
-- 업로드 파일은 최대 14MB입니다.
+- Vercel Functions 요청 제한을 고려해 업로드 파일은 최대 4MB입니다.
 - 모바일 운영체제나 브라우저가 백그라운드에 들어가면 녹음이 중단될 수 있습니다.
 - 마이크 권한을 사용할 수 없는 환경에서는 파일 업로드 또는 직접 작성 기능을 이용할 수 있습니다.
 
@@ -72,23 +72,11 @@ npm.cmd run dev
 
 현재 생성 모델은 `gemini-3.6-flash`입니다.
 
-## Cloudflare Workers 배포
+## Vercel 배포
 
-이 저장소에는 Cloudflare Workers용 `wrangler.jsonc`가 포함되어 있습니다.
+1. Vercel에서 GitHub의 비공개 `3kyetang/voicelog` 저장소를 가져옵니다.
+2. Framework Preset은 `Next.js`, Root Directory는 저장소 루트로 둡니다.
+3. Environment Variables에 `GEMINI_API_KEY`를 추가합니다.
+4. Deploy를 실행합니다.
 
-1. Cloudflare에 로그인합니다.
-2. 최초 배포를 실행합니다.
-
-```bash
-npm run deploy
-```
-
-3. 배포된 Worker에 Gemini API 키를 암호화된 Secret으로 등록합니다.
-
-```bash
-npx wrangler secret put GEMINI_API_KEY
-```
-
-입력한 값은 소스 코드나 GitHub 저장소에 포함되지 않으며 Cloudflare에서도 숨겨집니다. 이후 코드를 변경하면 `npm run deploy`로 다시 배포할 수 있습니다.
-
-GitHub 자동 배포를 사용하려면 Cloudflare Workers & Pages에서 이 비공개 저장소를 연결하고, 빌드 명령을 `npm run build`, 배포 명령을 `npx wrangler deploy`로 지정합니다. 서비스 접근을 제한하려면 배포 후 Cloudflare Access에서 허용할 이메일 주소만 등록하세요.
+`GEMINI_API_KEY`는 `NEXT_PUBLIC_` 접두사를 붙이지 않습니다. 키는 서버 함수에서만 읽으며 GitHub 저장소와 브라우저 번들에 포함되지 않습니다. 환경변수를 추가하거나 변경한 뒤에는 새로 배포해야 적용됩니다.

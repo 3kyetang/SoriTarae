@@ -118,7 +118,7 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   aiff: "audio/aiff",
 };
 
-const MAX_AUDIO_BYTES = 14 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 const HISTORY_KEY = "voicelog.entries.v1";
 const EDIT_DRAFT_KEY = "voicelog.edit-draft.v1";
 
@@ -307,7 +307,7 @@ export default function VoiceLogApp() {
   const silentGainRef = useRef<GainNode | null>(null);
   const audioChunksRef = useRef<Float32Array[]>([]);
   const sampleRateRef = useRef(44100);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const startedAtRef = useRef(0);
   const requestAbortRef = useRef<AbortController | null>(null);
@@ -532,32 +532,1109 @@ export default function VoiceLogApp() {
         setCurrentDiary(diary);
         window.setTimeout(() => setScreen("result"), 280);
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortErëÎµ¶‰ËkºwµçeØ±…ÍÍ9…µ”ô‰•‘¥Ñ½Èµ¡•…ˆø(€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€±…ÍÍ9…µ”ô‰‰…¬µ‰ÕÑÑ½¸ˆ(€€€€€€€€€½¹±¥¬õì ¤€ôøÍ•ÑMÉ••¸¡ÕÉÉ•¹Ñ¥…Éä€ü€‰É•ÍÕ±Ğˆ€è€‰¥‘±”ˆ¥ô(€€€€€€€€ø(€€€€€€€€€€ñÉÉ½İ1•™ĞÍ¥é”õìÈÁô€¼ø(€€€€€€€€€ƒ®>3²VªÂªâÀ(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Õ¹‘¼µ½¹ÑÉ½±Ìˆø(€€€€€€€€€€ñ%½¹	ÕÑÑ½¸(€€€€€€€€€€€±…‰•°ô‹².“¶Z$ƒ²Ş£²0ˆ(€€€€€€€€€€€½¹±¥¬õíÕ¹‘½‘¥Ñô(€€€€€€€€€€€‘¥Í…‰±•õí•‘¥Ñ%¹‘•à€ğô€Áô(€€€€€€€€€€ø(€€€€€€€€€€€€ñU¹‘¼ÈÍ¥é”õìÄáô€¼ø(€€€€€€€€€€ğ½%½¹	ÕÑÑ½¸ø(€€€€€€€€€€ñ%½¹	ÕÑÑ½¸(€€€€€€€€€€€±…‰•°ô‹®.“².pƒ².“¶Z$ˆ(€€€€€€€€€€€½¹±¥¬õíÉ•‘½‘¥Ñô(€€€€€€€€€€€‘¥Í…‰±•õí•‘¥Ñ%¹‘•à€øô•‘¥Ñ!¥ÍÑ½Éä¹±•¹Ñ €´€Åô(€€€€€€€€€€ø(€€€€€€€€€€€€ñI•‘¼ÈÍ¥é”õìÄáô€¼ø(€€€€€€€€€€ğ½%½¹	ÕÑÑ½¸ø(€€€€€€€€ğ½‘¥Øø(€€€€€€ğ½‘¥Øø(€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰•å•‰É½Üˆùíµ…¹Õ…±¹ÑÉä€ü€‹²²‚Dƒ²zG²Äˆ€è€‹²vóªâÀƒ®.“®N³ªâÀ‰ôğ½ÍÁ…¸ø(€€€€€€ñ Ä¥ô‰•‘¥Ñ½ÈµÑ¥Ñ±”ˆø(€€€€€€€íµ…¹Õ…±¹ÑÉä€ü€‹²b“®*c²v`ƒªâÃ®†w²vƒ²‚²ZÓ®ÎÓ²ã²jPˆ€è€‹®
-Ğƒ²vÓ²VóªâÃ®.×ªÊ0ƒ®.“®N³²ZĞƒ®ÎÓ²ã²jP‰ô(€€€€€€ğ½ Äø(€€€€€€ñÀ±…ÍÍ9…µ”ô‰•‘¥Ñ½Èµ±•…ˆø(€€€€€€€ƒ²Ös²ŠƒªâÃ®†w²v`ƒ²ó²ÊÓ®*Pƒ®
-c²b#²jP¸ƒ²
-³².“ªÎğƒ®.“®–àƒ®Ú®Ú²vÓ®
-`ƒªÂC²‚Tƒ¶Fs¶b²vƒ¶:ã¶VcªÊ0(€€€€€€€ƒªÎƒ²Î@ƒ²ó²ã²jP¸(€€€€€€ğ½Àø((€€€€€€ñ±…‰•°±…ÍÍ9…µ”ô‰•‘¥Ñ½ÈµÑ¥Ñ±”µ™¥•±ˆø(€€€€€€€€ñÍÁ…¸û²‚s®ª¤ğ½ÍÁ…¸ø(€€€€€€€€ñ¥¹ÁÕĞ(€€€€€€€€€Ù…±Õ”õí•‘¥ÑQ¥Ñ±•ô(€€€€€€€€€µ…á1•¹Ñ õìØÁô(€€€€€€€€€½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÍ•Ñ‘¥ÑQ¥Ñ±”¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô(€€€€€€€€€Á±…•¡½±‘•Èô‹²b“®*c²v`ƒªâÃ®†tˆ(€€€€€€€€¼ø(€€€€€€ğ½±…‰•°ø(€€€€€€ñ±…‰•°±…ÍÍ9…µ”ô‰•‘¥Ñ½Èµ‰½‘äµ™¥•±ˆø(€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰ÍÈµ½¹±äˆû²vóªâÀƒ®
-Ó²j¤ğ½ÍÁ…¸ø(€€€€€€€€ñÑ•áÑ…É•„(€€€€€€€€€Ù…±Õ”õí•‘¥Ñ	½‘åô(€€€€€€€€€½¹¡…¹”õì¡•Ù•¹Ğ¤€ôøÕÁ‘…Ñ•‘¥Ñ	½‘ä¡•Ù•¹Ğ¹Ñ…É•Ğ¹Ù…±Õ”¥ô(€€€€€€€€€µ…á1•¹Ñ õìÄÀÀÁô(€€€€€€€€€…ÕÑ½½ÕÌ(€€€€€€€€€Á±…•¡½±‘•Èô‹²b“®*`ƒ²z#²^#®6`ƒ²vóªÎğƒªŞã®V3²v`ƒ®#²v3²vƒ²zC²rƒ®†·ªÊ0ƒ²‚²ZÓ®ÎÓ²ã²jP¸ˆ(€€€€€€€€¼ø(€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰¡…É…Ñ•Èµ½Õ¹Ğˆùí•‘¥Ñ	½‘ä¹±•¹Ñ¡ô€¼€ÄÀÀÀğ½ÍÁ…¸ø(€€€€€€ğ½±…‰•°ø(€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰…ÕÑ½Í…Ù”µ¹½Ñ”ˆø(€€€€€€€€ñ¡•­¥É±”ÈÍ¥é”õìÄÙô€¼ø(€€€€€€€ƒ²vĞƒªâÃªâÃ²^@ƒ²Ò#²V#²vĞƒ²zC®>dƒ²‚²z—®>ó²jP¸(€€€€€€ğ½‘¥Øø(€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰•‘¥Ñ½Èµ…Ñ¥½¹Ìˆø(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”ô‰Í•½¹‘…Éäµ‰ÕÑÑ½¸ˆ½¹±¥¬õíÉ•ÍÑ½É•É…™Ñôø(€€€€€€€€€€ñI½Ñ…Ñ•ÜÍ¥é”õìÄáô€¼ø(€€€€€€€€€íµ…¹Õ…±¹ÑÉä€ü€‹®
-Ó²j¤ƒ®æ²jÃªâÀˆ€è€‰$ƒ²Ò#²V#²ró®†pƒ®Î×²n@‰ô(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”ô‰ÁÉ¥µ…Éäµ‰ÕÑÑ½¸ˆ½¹±¥¬õí™¥¹¥Í¡‘¥Ñ¥¹ôø(€€€€€€€€€€ñ¡•¬Í¥é”õìÄåô€¼ø(€€€€€€€€€ƒ²"c²‚Tƒ²f®0(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½‘¥Øø(€€€€ğ½Í•Ñ¥½¸ø(€€¤ì((€½¹ÍĞÉ•¹‘•ÉÉÉ½È€ô€ ¤€ôøì(€€€½¹ÍĞ•ÉÉ½È€ô…ÁÁÉÉ½È€üüì(€€€€€Ñ¥Ñ±”è€‹²zƒ².pƒ®²ã²‚sªÂ ƒ²wªÊó²ZÓ²jPˆ°(€€€€€µ•ÍÍ…”è€‹²jS²Ê·²vƒ®#²æc² ƒ®ªï¶Z#²ZÓ²jP¸ˆ°(€€€€€Ñ¥Àè€‹²zƒ².pƒ¶nƒ®.“².pƒ².s®>¶VĞƒ²ó²ã²jP¸ˆ°(€€€€€­¥¹è€‰•¹•É…°ˆ…Ì½¹ÍĞ°(€€€ôì(€€€É•ÑÕÉ¸€ (€€€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰™½ÕÌµÁ…¹•°•ÉÉ½ÈµÁ…¹•°ˆ…É¥„µ±…‰•±±•‘‰äô‰•ÉÉ½ÈµÑ¥Ñ±”ˆø(€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”õí•ÉÉ½Èµ¥½¸•ÉÉ½È´‘í•ÉÉ½È¹­¥¹‘õôø(€€€€€€€€€í•ÉÉ½È¹­¥¹€ôôô€‰½¹¹•Ñ¥½¸ˆ€ü€ (€€€€€€€€€€€€ñ]¥™¥=™˜Í¥é”õìĞÉô€¼ø(€€€€€€€€€€¤€è€ (€€€€€€€€€€€€ñY½±Õµ•`Í¥é”õìĞÉô€¼ø(€€€€€€€€€€¥ô(€€€€€€€€ğ½‘¥Øø(€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰•å•‰É½Üˆû®.“².pƒ².s®>¶V€ƒ²"`ƒ²z#²ZÓ²jPğ½ÍÁ…¸ø(€€€€€€€€ñ Ä¥ô‰•ÉÉ½ÈµÑ¥Ñ±”ˆùí•ÉÉ½È¹Ñ¥Ñ±•ôğ½ Äø(€€€€€€€€ñÀùí•ÉÉ½È¹µ•ÍÍ…•ôğ½Àø(€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰•ÉÉ½ÈµÑ¥Àˆø(€€€€€€€€€€ñ!•…‘Á¡½¹•ÌÍ¥é”õìÄåô€¼ø(€€€€€€€€€í•ÉÉ½È¹Ñ¥Áô(€€€€€€€€ğ½‘¥Øø(€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰•ÉÉ½Èµ…Ñ¥½¹Ìˆø(€€€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€€€±…ÍÍ9…µ”ô‰ÁÉ¥µ…Éäµ‰ÕÑÑ½¸ˆ(€€€€€€€€€€€½¹±¥¬õíÍÑ…ÉÑI•½É‘¥¹ô(€€€€€€€€€€ø(€€€€€€€€€€€€ñ5¥ŒÍ¥é”õìÄåô€¼ø(€€€€€€€€€€€ƒ®.“².pƒ®ç²v3¶VcªâÀ(€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€í…Õ‘¥½	±½ˆ€˜˜•ÉÉ½È¹­¥¹€ôôô€‰½¹¹•Ñ¥½¸ˆ€˜˜€ (€€€€€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€€€€€±…ÍÍ9…µ”ô‰Í•½¹‘…Éäµ‰ÕÑÑ½¸ˆ(€€€€€€€€€€€€€½¹±¥¬õíÉ••¹•É…Ñ•ô(€€€€€€€€€€€€ø(€€€€€€€€€€€€€€ñI•™É•Í¡ÜÍ¥é”õìÄáô€¼ø(€€€€€€€€€€€€€ƒ®.“².pƒ²w²Ä(€€€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€¥ô(€€€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€€€±…ÍÍ9…µ”ô‰Í•½¹‘…Éäµ‰ÕÑÑ½¸ˆ(€€€€€€€€€€€½¹±¥¬õì ¤€ôø™¥±•%¹ÁÕÑI•˜¹ÕÉÉ•¹Ğü¹±¥¬ ¥ô(€€€€€€€€€€ø(€€€€€€€€€€€€ñUÁ±½…Í¥é”õìÄáô€¼ø(€€€€€€€€€€€ƒ¶23²vğƒ²^®†s®Np(€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”ô‰Ñ•áĞµ‰ÕÑÑ½¸ˆ½¹±¥¬õíÍÑ…ÉÑ5…¹Õ…±¹ÑÉåôø(€€€€€€€€€€€€ñ¥±•Q•áĞÍ¥é”õìÄİô€¼ø(€€€€€€€€€€€ƒ²²‚Dƒ¶7²*“¶*àƒ²zG²Ä(€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€ğ½‘¥Øø(€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ±…ÍÍ9…µ”ô‰ÍÕ‰Ñ±”µ±¥¹¬ˆ½¹±¥¬õì ¤€ôøÍ•ÑMÉ••¸ ‰¥‘±”ˆ¥ôø(€€€€€€€€€ƒ®¦S²vã²ró®†pƒ®>3²VªÂªâÀ(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½Í•Ñ¥½¸ø(€€€€¤ì(€ôì((€½¹ÍĞÉ•¹‘•É!¥ÍÑ½Éä€ô€ ¤€ôø€ (€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰¡¥ÍÑ½ÉäµÍÉ••¸ˆ…É¥„µ±…‰•±±•‘‰äô‰¡¥ÍÑ½ÉäµÑ¥Ñ±”ˆø(€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Í•Ñ¥½¸µ¡•…‘¥¹œˆø(€€€€€€€€ñ‘¥Øø(€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰•å•‰É½Üˆû®
-c²v`ƒªâÃ®†tğ½ÍÁ…¸ø(€€€€€€€€€€ñ Ä¥ô‰¡¥ÍÑ½ÉäµÑ¥Ñ±”ˆû®.“².pƒ¶:ó²ÎC®ÎÓ®*Pƒ¶Vc® ğ½ Äø(€€€€€€€€€€ñÀû²‚²z—¶Vpƒ²vóªâÃ®*Pƒ²vĞƒªâÃªâÃ²^C®0ƒ®ÎÓªÒ®>ó²jP¸ğ½Àø(€€€€€€€€ğ½‘¥Øø(€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€±…ÍÍ9…µ”ô‰ÁÉ¥µ…Éäµ‰ÕÑÑ½¸½µÁ…Ğµ‰ÕÑÑ½¸ˆ(€€€€€€€€€½¹±¥¬õì ¤€ôøÍİ¥Ñ¡Q…ˆ ‰É•½Éˆ¥ô(€€€€€€€€ø(€€€€€€€€€€ñA±ÕÌÍ¥é”õìÄáô€¼ø(€€€€€€€€€ƒ² ƒªâÃ®†t(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½‘¥Øø((€€€€€í•¹ÑÉ¥•Ì¹±•¹Ñ €ôôô€À€ü€ (€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰•µÁÑäµÍÑ…Ñ”ˆø(€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰•µÁÑäµ¥±±ÕÍÑÉ…Ñ¥½¸ˆø(€€€€€€€€€€€€ñ	½½­=Á•¸Í¥é”õìÌáô€¼ø(€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€ñ Èû²V²ƒ²‚²z—¶Vpƒ²vóªâÃªÂ ƒ²^²ZÓ²jPğ½ Èø(€€€€€€€€€€ñÀû²b“®*c²v`ƒ²vÓ²VóªâÃ®–ğƒ®N“®‚“²ó®¦Ğƒ²Ê¬ƒ®Ê#²àƒªâÃ®†w²vĞƒ²vÓªÎÏ²^@ƒ²2O²^³²jP¸ğ½Àø(€€€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€€€±…ÍÍ9…µ”ô‰Í•½¹‘…Éäµ‰ÕÑÑ½¸ˆ(€€€€€€€€€€€½¹±¥¬õì ¤€ôøÍİ¥Ñ¡Q…ˆ ‰É•½Éˆ¥ô(€€€€€€€€€€ø(€€€€€€€€€€€€ñ5¥ŒÍ¥é”õìÄáô€¼ø(€€€€€€€€€€€ƒ²Ê¬ƒ²vóªâÀƒ®3®N“ªâÀ(€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€ğ½‘¥Øø(€€€€€€¤€è€ (€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰¡¥ÍÑ½Éäµ±¥ÍĞˆø(€€€€€€€€€í•¹ÑÉ¥•Ì¹µ…À ¡•¹ÑÉä¤€ôøì(€€€€€€€€€€€½¹ÍĞ½ÁÑ¥½¸€ô(€€€€€€€€€€€€€MQe1}=AQ%=9L¹™¥¹ ¡¥Ñ•´¤€ôø¥Ñ•´¹Ù…±Õ”€ôôô•¹ÑÉä¹ÍÑå±”¤€üü(€€€€€€€€€€€€€MQe1}=AQ%=9MlÁtì(€€€€€€€€€€€É•ÑÕÉ¸€ (€€€€€€€€€€€€€€ñ…ÉÑ¥±”­•äõí•¹ÑÉä¹¥‘ô±…ÍÍ9…µ”ô‰¡¥ÍÑ½Éäµ…Éˆø(€€€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€€€€€€€€€±…ÍÍ9…µ”ô‰¡¥ÍÑ½Éäµ…Éµµ…¥¸ˆ(€€€€€€€€€€€€€€€€€½¹±¥¬õì ¤€ôø½Á•¹!¥ÍÑ½Éå¹ÑÉä¡•¹ÑÉä¥ô(€€€€€€€€€€€€€€€€ø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰¡¥ÍÑ½Éäµ‘…Ñ”ˆø(€€€€€€€€€€€€€€€€€€€€ñÍÑÉ½¹œùí™½Éµ…ÑM¡½ÉÑ…Ñ”¡•¹ÑÉä¹É•…Ñ•‘Ğ¥ôğ½ÍÑÉ½¹œø(€€€€€€€€€€€€€€€€€€€€ñÍµ…±°ø(€€€€€€€€€€€€€€€€€€€€€í¹•Ü%¹Ñ°¹…Ñ•Q¥µ•½Éµ…Ğ ‰­¼µ-Hˆ°ì(€€€€€€€€€€€€€€€€€€€€€€€İ••­‘…äè€‰Í¡½ÉĞˆ°(€€€€€€€€€€€€€€€€€€€€€ô¤¹™½Éµ…Ğ¡¹•Ü…Ñ”¡•¹ÑÉä¹É•…Ñ•‘Ğ¤¥ô(€€€€€€€€€€€€€€€€€€€€ğ½Íµ…±°ø(€€€€€€€€€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰¡¥ÍÑ½Éäµ½¹Ñ•¹Ğˆø(€€€€€€€€€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰¡¥ÍÑ½Éäµµ•Ñ„ˆø(€€€€€€€€€€€€€€€€€€€€€€ñÍÁ…¸ùí½ÁÑ¥½¸¹±…‰•±ôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€€€€€ñÍÁ…¸ùí•¹ÑÉä¹µ½½‘ôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€€€ñÍÑÉ½¹œùí•¹ÑÉä¹Ñ¥Ñ±•ôğ½ÍÑÉ½¹œø(€€€€€€€€€€€€€€€€€€€€ñÍÁ…¸ùí•¹ÑÉä¹‰½‘åôğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€€€€€ñ%½¹	ÕÑÑ½¸(€€€€€€€€€€€€€€€€€±…‰•°õí€‘í•¹ÑÉä¹Ñ¥Ñ±•ôƒ²
-·²‚qô(€€€€€€€€€€€€€€€€€½¹±¥¬õì ¤€ôø‘•±•Ñ•¹ÑÉä¡•¹ÑÉä¹¥¥ô(€€€€€€€€€€€€€€€€ø(€€€€€€€€€€€€€€€€€€ñQÉ…Í ÈÍ¥é”õìÄİô€¼ø(€€€€€€€€€€€€€€€€ğ½%½¹	ÕÑÑ½¸ø(€€€€€€€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€€€€€€€¤ì(€€€€€€€€€ô¥ô(€€€€€€€€ğ½‘¥Øø(€€€€€€¥ô(€€€€ğ½Í•Ñ¥½¸ø(€€¤ì((€½¹ÍĞÉ•¹‘•ÉM•ÑÑ¥¹Ì€ô€ ¤€ôø€ (€€€€ñÍ•Ñ¥½¸±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹ÌµÍÉ••¸ˆ…É¥„µ±…‰•±±•‘‰äô‰Í•ÑÑ¥¹ÌµÑ¥Ñ±”ˆø(€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Í•Ñ¥½¸µ¡•…‘¥¹œˆø(€€€€€€€€ñ‘¥Øø(€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰•å•‰É½Üˆû¶fcªÊôƒ²“²‚Tğ½ÍÁ…¸ø(€€€€€€€€€€ñ Ä¥ô‰Í•ÑÑ¥¹ÌµÑ¥Ñ±”ˆû¶:ã²V#¶VpƒªâÃ®†w²vƒ²r¶Vpƒ²“²‚Tğ½ Äø(€€€€€€€€€€ñÀû²^ÃªÊÀƒ²¶s²f ƒ²vĞƒªâÃªâÃ²^@ƒ®
-£®*Pƒ®6Ã²vÓ¶Ã®–ğƒ¶fW²vã¶V€ƒ²"`ƒ²z#²ZÓ²jP¸ğ½Àø(€€€€€€€€ğ½‘¥Øø(€€€€€€ğ½‘¥Øø((€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹ÌµÉ¥ˆø(€€€€€€€€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹Ìµ…É½¹¹•Ñ¥½¸µ…Éˆø(€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹Ìµ¥½¸ˆø(€€€€€€€€€€€í½¹¹•Ñ¥½¹I•…‘ä€ü€ñ]¥™¤Í¥é”õìÈÉô€¼ø€è€ñ]¥™¥=™˜Í¥é”õìÈÉô€¼ùô(€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹Ìµ±…‰•°ˆù•µ¥¹¤$ƒ²^ÃªÊÀğ½ÍÁ…¸ø(€€€€€€€€€€€€ñÍÑÉ½¹œø(€€€€€€€€€€€€€í½¹¹•Ñ¥½¹I•…‘ä€ôôô¹Õ±°(€€€€€€€€€€€€€€€€ü€‹¶fW²vàƒ²’Dˆ(€€€€€€€€€€€€€€€€è½¹¹•Ñ¥½¹I•…‘ä(€€€€€€€€€€€€€€€€€€ü€‹²
-³²j¤ƒªÂ®*”ˆ(€€€€€€€€€€€€€€€€€€è€‹²“²‚Tƒ¶V²jP‰ô(€€€€€€€€€€€€ğ½ÍÑÉ½¹œø(€€€€€€€€€€€€ñÀø(€€€€€€€€€€€€€í½¹¹•Ñ¥½¹I•…‘ä(€€€€€€€€€€€€€€€€ü€‹²v3²Ç²vƒ®Ú²w¶VĞƒ¶VsªÖ·²ZĞƒ²vóªâÃ®–ğƒ®3®Nƒ²’®æªÂ ƒ®BC²ZÓ²jP¸ˆ(€€€€€€€€€€€€€€€€è€‹ªÒ®š³²zCªÂ •µ¥¹¤A$ƒ²^ÃªÊÃ²vƒ²f®3¶Vc®¦Ğ$ƒ²vóªâÀƒ®3®N“ªâÃ®–ğƒ²
-³²j§¶V€ƒ²"`ƒ²z#²ZÓ²jP¸‰ô(€€€€€€€€€€€€ğ½Àø(€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€ñÍÁ…¸(€€€€€€€€€€€±…ÍÍ9…µ”õíÍÑ…ÑÕÌµ‘½Ğ€‘í½¹¹•Ñ¥½¹I•…‘ä€ü€‰¥ÌµÉ•…‘äˆ€è€ˆ‰õô(€€€€€€€€€€€…É¥„µ¡¥‘‘•¸ô‰ÑÉÕ”ˆ(€€€€€€€€€€¼ø(€€€€€€€€ğ½…ÉÑ¥±”ø((€€€€€€€€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹Ìµ…Éˆø(€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹Ìµ¥½¸µ¥¹Ğˆø(€€€€€€€€€€€€ñ1½­-•å¡½±”Í¥é”õìÈÉô€¼ø(€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹Ìµ±…‰•°ˆûªâÃ®†tƒ®ÎÓªÒ ğ½ÍÁ…¸ø(€€€€€€€€€€€€ñÍÑÉ½¹œû²vĞƒªâÃªâÃ²^C®0ƒ²‚²z”ğ½ÍÑÉ½¹œø(€€€€€€€€€€€€ñÀø(€€€€€€€€€€€€€ƒ²‚²z—¶Vpƒ²vóªâÃ²f ƒ¶:ã²Dƒ²’G²vàƒ²Ò#²V#²v ƒ¶b²z°ƒ®â3®vó²jÃ²‚²v`ƒ®†s²î°ƒ²‚²z—²3²^@(€€€€€€€€€€€€€ƒ®ÎÓªÒ®>ó²jP¸(€€€€€€€€€€€€ğ½Àø(€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€ğ½…ÉÑ¥±”ø((€€€€€€€€ñ…ÉÑ¥±”±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹Ìµ…Éˆø(€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹Ìµ¥½¸½É…°ˆø(€€€€€€€€€€€€ñ¥±•Õ‘¥¼Í¥é”õìÈÉô€¼ø(€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰Í•ÑÑ¥¹Ìµ±…‰•°ˆû²b“®RS²bƒ²z®‚”ğ½ÍÁ…¸ø(€€€€€€€€€€€€ñÍÑÉ½¹œû®ç²v0ƒ®bC®*Pƒ¶23²vğƒ²^®†s®Npğ½ÍÑÉ½¹œø(€€€€€€€€€€€€ñÀø(€€€€€€€€€€€€€ƒ®ç²v3²v ][®†pƒ²’®æ®Bc®¦À°][
-İ5@Ï
-İ4Ñ
-İ
-İ=
-İ1ƒ¶23²vó²v(€€€€€€€€€€€€€€ÄÑ5ªæ3² ƒ²Êc®š³¶VÓ²jP¸(€€€€€€€€€€€€ğ½Àø(€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€ğ½…ÉÑ¥±”ø(€€€€€€ğ½‘¥Øø((€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰‘…¹•Èµé½¹”ˆø(€€€€€€€€ñ‘¥Øø(€€€€€€€€€€ñÍÑÉ½¹œû²‚²z—®BpƒªâÃ®†tƒ®ª£®F@ƒ²
-·²‚pğ½ÍÑÉ½¹œø(€€€€€€€€€€ñÀû²vĞƒ²zG²^²v ƒ®Bc®>3®šĞƒ²"`ƒ²^²ZÓ²jP¸ğ½Àø(€€€€€€€€ğ½‘¥Øø(€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€±…ÍÍ9…µ”ô‰‘…¹•Èµ‰ÕÑÑ½¸ˆ(€€€€€€€€€½¹±¥¬õí±•…É!¥ÍÑ½Éåô(€€€€€€€€€‘¥Í…‰±•õì…•¹ÑÉ¥•Ì¹±•¹Ñ¡ô(€€€€€€€€ø(€€€€€€€€€€ñQÉ…Í ÈÍ¥é”õìÄİô€¼ø(€€€€€€€€€ƒ²‚²ÊĞƒ²
-·²‚p(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½‘¥Øø(€€€€ğ½Í•Ñ¥½¸ø(€€¤ì((€½¹ÍĞÉ•¹‘•ÉI•½É‘MÉ••¸€ô€ ¤€ôøì(€€€¥˜€¡ÍÉ••¸€ôôô€‰É•½É‘¥¹œˆ¤É•ÑÕÉ¸É•¹‘•ÉI•½É‘¥¹œ ¤ì(€€€¥˜€¡ÍÉ••¸€ôôô€‰ÁÉ½•ÍÍ¥¹œˆ¤É•ÑÕÉ¸É•¹‘•ÉAÉ½•ÍÍ¥¹œ ¤ì(€€€¥˜€¡ÍÉ••¸€ôôô€‰É•ÍÕ±Ğˆ¤É•ÑÕÉ¸É•¹‘•ÉI•ÍÕ±Ğ ¤ì(€€€¥˜€¡ÍÉ••¸€ôôô€‰•‘¥Ñ¥¹œˆ¤É•ÑÕÉ¸É•¹‘•É‘¥Ñ¥¹œ ¤ì(€€€¥˜€¡ÍÉ••¸€ôôô€‰•ÉÉ½Èˆ¤É•ÑÕÉ¸É•¹‘•ÉÉÉ½È ¤ì(€€€É•ÑÕÉ¸É•¹‘•É%‘±” ¤ì(€ôì((€É•ÑÕÉ¸€ (€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Í¥Ñ”µÍ¡•±°ˆø(€€€€€€ñ¡•…‘•È±…ÍÍ9…µ”ô‰…ÁÀµ¡•…‘•Èˆø(€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€±…ÍÍ9…µ”ô‰‰É…¹ˆ(€€€€€€€€€½¹±¥¬õì ¤€ôøÍİ¥Ñ¡Q…ˆ ‰É•½Éˆ¥ô(€€€€€€€€€…É¥„µ±…‰•°ô‰Y½¥•1½œƒ®¦S²vàˆ(€€€€€€€€ø(€€€€€€€€€€ñ1½½5…É¬€¼ø(€€€€€€€€€€ñÍÁ…¸ø(€€€€€€€€€€€€ñÍÑÉ½¹œùY½¥•1½œğ½ÍÑÉ½¹œø(€€€€€€€€€€€€ñÍµ…±°û®ª§²3®š³®†pƒ®
-£ªâÃ®*Pƒ®
-c²v`ƒ¶Vc® ğ½Íµ…±°ø(€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€ğ½‰ÕÑÑ½¸ø((€€€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰‘•Í­Ñ½Àµ¹…Øˆ…É¥„µ±…‰•°ô‹²ó²jPƒ®¦S®&Ğˆø(€€€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€€€±…ÍÍ9…µ”õíÑ…ˆ€ôôô€‰É•½Éˆ€ü€‰¥Ìµ…Ñ¥Ù”ˆ€è€ˆ‰ô(€€€€€€€€€€€½¹±¥¬õì ¤€ôøÍİ¥Ñ¡Q…ˆ ‰É•½Éˆ¥ô(€€€€€€€€€€ø(€€€€€€€€€€€€ñ5¥ŒÍ¥é”õìÄáô€¼ø(€€€€€€€€€€€ƒªâÃ®†w¶VcªâÀ(€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€€€±…ÍÍ9…µ”õíÑ…ˆ€ôôô€‰¡¥ÍÑ½Éäˆ€ü€‰¥Ìµ…Ñ¥Ù”ˆ€è€ˆ‰ô(€€€€€€€€€€€½¹±¥¬õì ¤€ôøÍİ¥Ñ¡Q…ˆ ‰¡¥ÍÑ½Éäˆ¥ô(€€€€€€€€€€ø(€€€€€€€€€€€€ñ!¥ÍÑ½ÉäÍ¥é”õìÄáô€¼ø(€€€€€€€€€€€ƒ®
-c²v`ƒªâÃ®†t(€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€€€±…ÍÍ9…µ”õíÑ…ˆ€ôôô€‰Í•ÑÑ¥¹Ìˆ€ü€‰¥Ìµ…Ñ¥Ù”ˆ€è€ˆ‰ô(€€€€€€€€€€€½¹±¥¬õì ¤€ôøÍİ¥Ñ¡Q…ˆ ‰Í•ÑÑ¥¹Ìˆ¥ô(€€€€€€€€€€ø(€€€€€€€€€€€€ñM•ÑÑ¥¹ÌÈÍ¥é”õìÄáô€¼ø(€€€€€€€€€€€ƒ²“²‚T(€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€ğ½¹…Øø((€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰±½…°µ‰…‘”ˆø(€€€€€€€€€€ñ1½­-•å¡½±”Í¥é”õìÄÕô€¼ø(€€€€€€€€€ƒ®†s²î°ƒ²‚²z”(€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€ğ½¡•…‘•Èø((€€€€€€ñµ…¥¸É•˜õíµ…¥¹I•™ôÑ…‰%¹‘•àõì´Åô±…ÍÍ9…µ”ô‰…ÁÀµµ…¥¸ˆø(€€€€€€€íÑ…ˆ€ôôô€‰É•½Éˆ(€€€€€€€€€€üÉ•¹‘•ÉI•½É‘MÉ••¸ ¤(€€€€€€€€€€èÑ…ˆ€ôôô€‰¡¥ÍÑ½Éäˆ(€€€€€€€€€€€€üÉ•¹‘•É!¥ÍÑ½Éä ¤(€€€€€€€€€€€€èÉ•¹‘•ÉM•ÑÑ¥¹Ì ¥ô(€€€€€€ğ½µ…¥¸ø((€€€€€€ñ¹…Ø±…ÍÍ9…µ”ô‰µ½‰¥±”µ¹…Øˆ…É¥„µ±…‰•°ô‹²ó²jPƒ®¦S®&Ğˆø(€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€±…ÍÍ9…µ”õíÑ…ˆ€ôôô€‰É•½Éˆ€ü€‰¥Ìµ…Ñ¥Ù”ˆ€è€ˆ‰ô(€€€€€€€€€½¹±¥¬õì ¤€ôøÍİ¥Ñ¡Q…ˆ ‰É•½Éˆ¥ô(€€€€€€€€ø(€€€€€€€€€€ñ5¥ŒÍ¥é”õìÈÅô€¼ø(€€€€€€€€€€ñÍÁ…¸ûªâÃ®†tğ½ÍÁ…¸ø(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€±…ÍÍ9…µ”õíÑ…ˆ€ôôô€‰¡¥ÍÑ½Éäˆ€ü€‰¥Ìµ…Ñ¥Ù”ˆ€è€ˆ‰ô(€€€€€€€€€½¹±¥¬õì ¤€ôøÍİ¥Ñ¡Q…ˆ ‰¡¥ÍÑ½Éäˆ¥ô(€€€€€€€€ø(€€€€€€€€€€ñ!¥ÍÑ½ÉäÍ¥é”õìÈÅô€¼ø(€€€€€€€€€€ñÍÁ…¸û®
-c²v`ƒªâÃ®†tğ½ÍÁ…¸ø(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€±…ÍÍ9…µ”õíÑ…ˆ€ôôô€‰Í•ÑÑ¥¹Ìˆ€ü€‰¥Ìµ…Ñ¥Ù”ˆ€è€ˆ‰ô(€€€€€€€€€½¹±¥¬õì ¤€ôøÍİ¥Ñ¡Q…ˆ ‰Í•ÑÑ¥¹Ìˆ¥ô(€€€€€€€€ø(€€€€€€€€€€ñM•ÑÑ¥¹ÌÈÍ¥é”õìÈÅô€¼ø(€€€€€€€€€€ñÍÁ…¸û²“²‚Tğ½ÍÁ…¸ø(€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€ğ½¹…Øø((€€€€€€ñ¥¹ÁÕĞ(€€€€€€€É•˜õí™¥±•%¹ÁÕÑI•™ô(€€€€€€€±…ÍÍ9…µ”ô‰ÍÈµ½¹±äˆ(€€€€€€€ÑåÁ”ô‰™¥±”ˆ(€€€€€€€…•ÁĞôˆ¹İ…Ø°¹µÀÌ°¹´Ñ„°¹µÀĞ°¹……Œ°¹½œ°¹™±…Œ°¹…¥˜°¹…¥™˜±…Õ‘¥¼¼¨ˆ(€€€€€€€½¹¡…¹”õí¡…¹‘±•¥±•ô(€€€€€€¼ø((€€€€€í•áÁ½ÉÑ=Á•¸€˜˜ÕÉÉ•¹Ñ¥…Éä€˜˜€ (€€€€€€€€ñ‘¥Ø(€€€€€€€€€±…ÍÍ9…µ”ô‰µ½‘…°µ‰…­‘É½Àˆ(€€€€€€€€€É½±”ô‰ÁÉ•Í•¹Ñ…Ñ¥½¸ˆ(€€€€€€€€€½¹5½ÕÍ•½İ¸õì¡•Ù•¹Ğ¤€ôøì(€€€€€€€€€€€¥˜€¡•Ù•¹Ğ¹ÕÉÉ•¹ÑQ…É•Ğ€ôôô•Ù•¹Ğ¹Ñ…É•Ğ¤Í•ÑáÁ½ÉÑ=Á•¸¡™…±Í”¤ì(€€€€€€€€€õô(€€€€€€€€ø(€€€€€€€€€€ñÍ•Ñ¥½¸(€€€€€€€€€€€±…ÍÍ9…µ”ô‰•áÁ½ÉĞµÍ¡••Ğˆ(€€€€€€€€€€€É½±”ô‰‘¥…±½œˆ(€€€€€€€€€€€…É¥„µµ½‘…°ô‰ÑÉÕ”ˆ(€€€€€€€€€€€…É¥„µ±…‰•±±•‘‰äô‰•áÁ½ÉĞµÑ¥Ñ±”ˆ(€€€€€€€€€€ø(€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Í¡••Ğµ¡…¹‘±”ˆ€¼ø(€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰•áÁ½ÉĞµ¡•…ˆø(€€€€€€€€€€€€€€ñ‘¥Øø(€€€€€€€€€€€€€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰•å•‰É½Üˆû²‚²z”ƒ²f®0ğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€€ñ È¥ô‰•áÁ½ÉĞµÑ¥Ñ±”ˆû²ZÓ®ZïªÊ0ƒ®
-Ó®ÎÓ®
-óªæ3²jPüğ½ Èø(€€€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€€€ñ%½¹	ÕÑÑ½¸±…‰•°ô‹®
-Ó®ÎÓ®
-ÓªâÀƒ®.¯ªâÀˆ½¹±¥¬õì ¤€ôøÍ•ÑáÁ½ÉÑ=Á•¸¡™…±Í”¥ôø(€€€€€€€€€€€€€€€€ñ`Í¥é”õìÈÁô€¼ø(€€€€€€€€€€€€€€ğ½%½¹	ÕÑÑ½¸ø(€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€ñÀ±…ÍÍ9…µ”ô‰•áÁ½ÉĞµÁÉ•Ù¥•ÜˆùíÕÉÉ•¹Ñ¥…Éä¹Ñ¥Ñ±•ôğ½Àø(€€€€€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰•áÁ½ÉĞµ½ÁÑ¥½¹Ìˆø(€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí‘½İ¹±½…‘¥…Éåôø(€€€€€€€€€€€€€€€€ñÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ñ½İ¹±½…Í¥é”õìÈÉô€¼ø(€€€€€€€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€ƒ¶7²*“¶*àƒ¶23²vğ(€€€€€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õí½Áå¥…Éåôø(€€€€€€€€€€€€€€€€ñÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ñ½ÁäÍ¥é”õìÈÉô€¼ø(€€€€€€€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€ƒ®
-Ó²j¤ƒ®Î×²
-°(€€€€€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€€€ñ‰ÕÑÑ½¸ÑåÁ”ô‰‰ÕÑÑ½¸ˆ½¹±¥¬õíÍ¡…É•¥…Éåôø(€€€€€€€€€€€€€€€€ñÍÁ…¸ø(€€€€€€€€€€€€€€€€€€ñM¡…É”ÈÍ¥é”õìÈÉô€¼ø(€€€€€€€€€€€€€€€€ğ½ÍÁ…¸ø(€€€€€€€€€€€€€€€ƒªÎ×²rƒ¶VcªâÀ(€€€€€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€€€ğ½‘¥Øø(€€€€€€€€€€€€ñ‰ÕÑÑ½¸(€€€€€€€€€€€€€ÑåÁ”ô‰‰ÕÑÑ½¸ˆ(€€€€€€€€€€€€€±…ÍÍ9…µ”ô‰ÁÉ¥µ…Éäµ‰ÕÑÑ½¸ˆ(€€€€€€€€€€€€€½¹±¥¬õì ¤€ôøì(€€€€€€€€€€€€€€€Í•ÑáÁ½ÉÑ=Á•¸¡™…±Í”¤ì(€€€€€€€€€€€€€€€Íİ¥Ñ¡Q…ˆ ‰¡¥ÍÑ½Éäˆ¤ì(€€€€€€€€€€€€€õô(€€€€€€€€€€€€ø(€€€€€€€€€€€€€€ñ!¥ÍÑ½ÉäÍ¥é”õìÄáô€¼ø(€€€€€€€€€€€€€ƒ²‚²z—®BpƒªâÃ®†tƒ®ÎÓªâÀ(€€€€€€€€€€€€ğ½‰ÕÑÑ½¸ø(€€€€€€€€€€ğ½Í•Ñ¥½¸ø(€€€€€€€€ğ½‘¥Øø(€€€€€€¥ô((€€€€€íÑ½…ÍĞ€˜˜€ (€€€€€€€€ñ‘¥Ø±…ÍÍ9…µ”ô‰Ñ½…ÍĞˆÉ½±”ô‰ÍÑ…ÑÕÌˆ…É¥„µ±¥Ù”ô‰Á½±¥Ñ”ˆø(€€€€€€€€€€ñ¡•­¥É±”ÈÍ¥é”õìÄáô€¼ø(€€€€€€€€€íÑ½…ÍÑô(€€€€€€€€ğ½‘¥Øø(€€€€€€¥ô(€€€€ğ½‘¥Øø(€€¤ì)ô(
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setAppError({
+          title: "ì—°ê²°ì´ ì ì‹œ ë¶ˆì•ˆì •í•´ìš”",
+          message: "ì¼ê¸° ìƒì„± ì¤‘ ì—°ê²°ì´ ëŠê²¼ì–´ìš”. ë…¹ìŒì€ ì´ í™”ë©´ì— ë‚¨ì•„ ìˆì–´ìš”.",
+          tip: "ë„¤íŠ¸ì›Œí¬ë¥¼ í™•ì¸í•œ ë’¤ ë‹¤ì‹œ ìƒì„±ì„ ëˆŒëŸ¬ ì£¼ì„¸ìš”.",
+          kind: "connection",
+        });
+        setScreen("error");
+      } finally {
+        requestAbortRef.current = null;
+      }
+    },
+    [],
+  );
+
+  const startRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setAppError({
+        title: "ì´ ë¸Œë¼ìš°ì €ì—ì„œëŠ” ë…¹ìŒí•  ìˆ˜ ì—†ì–´ìš”",
+        message: "ë§ˆì´í¬ ë…¹ìŒì„ ì§€ì›í•˜ì§€ ì•ŠëŠ” í™˜ê²½ì´ì—ìš”.",
+        tip: "ëŒ€ì‹  WAV, MP3, M4A, AAC, OGG ë˜ëŠ” FLAC íŒŒì¼ì„ ì˜¬ë ¤ ì£¼ì„¸ìš”.",
+        kind: "permission",
+      });
+      setScreen("error");
+      return;
+    }
+
+    setIsMicStarting(true);
+    setAppError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      const WindowWithWebkit = window as typeof window & {
+        webkitAudioContext?: typeof AudioContext;
+      };
+      const AudioContextConstructor =
+        window.AudioContext || WindowWithWebkit.webkitAudioContext;
+      if (!AudioContextConstructor) throw new Error("AudioContext unavailable");
+
+      const context = new AudioContextConstructor();
+      await context.resume();
+      const source = context.createMediaStreamSource(stream);
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.78;
+      const processor = context.createScriptProcessor(4096, 1, 1);
+      const silentGain = context.createGain();
+      silentGain.gain.value = 0;
+
+      audioChunksRef.current = [];
+      sampleRateRef.current = context.sampleRate;
+      processor.onaudioprocess = (event) => {
+        audioChunksRef.current.push(
+          new Float32Array(event.inputBuffer.getChannelData(0)),
+        );
+      };
+
+      source.connect(analyser);
+      analyser.connect(processor);
+      processor.connect(silentGain);
+      silentGain.connect(context.destination);
+
+      streamRef.current = stream;
+      audioContextRef.current = context;
+      sourceRef.current = source;
+      analyserRef.current = analyser;
+      processorRef.current = processor;
+      silentGainRef.current = silentGain;
+
+      startedAtRef.current = Date.now();
+      setRecordingSeconds(0);
+      setScreen("recording");
+
+      timerRef.current = window.setInterval(() => {
+        setRecordingSeconds(
+          Math.max(0, Math.floor((Date.now() - startedAtRef.current) / 1000)),
+        );
+      }, 250);
+
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const draw = () => {
+        analyser.getByteTimeDomainData(data);
+        const next = Array.from({ length: 18 }, (_, index) => {
+          const dataIndex = Math.floor((index / 18) * data.length);
+          const amplitude = Math.abs(data[dataIndex] - 128) / 68;
+          return Math.min(1, Math.max(0.12, amplitude * 2.2));
+        });
+        setWaveLevels(next);
+        animationFrameRef.current = window.requestAnimationFrame(draw);
+      };
+      draw();
+    } catch (error) {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      const permissionDenied =
+        error instanceof DOMException &&
+        (error.name === "NotAllowedError" || error.name === "SecurityError");
+      setAppError({
+        title: permissionDenied
+          ? "ë§ˆì´í¬ ê¶Œí•œì´ í•„ìš”í•´ìš”"
+          : "ë…¹ìŒì„ ì‹œì‘í•˜ì§€ ëª»í–ˆì–´ìš”",
+        message: permissionDenied
+          ? "ë¸Œë¼ìš°ì €ì—ì„œ VoiceLogì˜ ë§ˆì´í¬ ì‚¬ìš©ì„ í—ˆìš©í•´ ì£¼ì„¸ìš”."
+          : "í˜„ì¬ ê¸°ê¸°ì˜ ë…¹ìŒ ì¥ì¹˜ë¥¼ ì—°ê²°í•˜ì§€ ëª»í–ˆì–´ìš”.",
+        tip: "ê¶Œí•œì„ í—ˆìš©í•œ ë’¤ ë‹¤ì‹œ ì‹œë„í•˜ê±°ë‚˜, ì˜¤ë””ì˜¤ íŒŒì¼ ì—…ë¡œë“œë¥¼ ì´ìš©í•´ ì£¼ì„¸ìš”.",
+        kind: "permission",
+      });
+      setScreen("error");
+    } finally {
+      setIsMicStarting(false);
+    }
+  };
+
+  const stopRecording = async () => {
+    const duration = Math.max(
+      recordingSeconds,
+      Math.floor((Date.now() - startedAtRef.current) / 1000),
+    );
+    const chunks = [...audioChunksRef.current];
+    const sampleRate = sampleRateRef.current;
+    await releaseRecorder();
+
+    if (duration < 3 || chunks.length === 0) {
+      setAppError({
+        title: "ë…¹ìŒ ë‚´ìš©ì´ ì¡°ê¸ˆ ì§§ì•„ìš”",
+        message: "ì¼ê¸°ë¡œ ì •ë¦¬í•  ë§Œí¼ ì¶©ë¶„í•œ ëª©ì†Œë¦¬ë¥¼ ë“£ì§€ ëª»í–ˆì–´ìš”.",
+        tip: "5ì´ˆ ì´ìƒ í¸í•˜ê²Œ ì´ì•¼ê¸°í•´ ì£¼ì„¸ìš”. ì¤‘ê°„ì— ì‰¬ì–´ë„ ë…¹ìŒì€ ê³„ì†ë©ë‹ˆë‹¤.",
+        kind: "audio",
+      });
+      setScreen("error");
+      return;
+    }
+
+    const wav = encodeWav(chunks, sampleRate);
+    if (wav.size > MAX_AUDIO_BYTES) {
+      setAppError({
+        title: "ë…¹ìŒ íŒŒì¼ì´ ë„ˆë¬´ ì»¤ìš”",
+        message: "í•œ ë²ˆì— ì²˜ë¦¬í•  ìˆ˜ ìˆëŠ” ë…¹ìŒ í¬ê¸°ë¥¼ ë„˜ì—ˆì–´ìš”.",
+        tip: "ì¡°ê¸ˆ ë” ì§§ê²Œ ë‚˜ëˆ„ì–´ ë…¹ìŒí•˜ê±°ë‚˜ 4MB ì´í•˜ íŒŒì¼ì„ ì˜¬ë ¤ ì£¼ì„¸ìš”.",
+        kind: "audio",
+      });
+      setScreen("error");
+      return;
+    }
+
+    await generateDiary(wav, style);
+  };
+
+  const cancelRecording = async () => {
+    await releaseRecorder();
+    audioChunksRef.current = [];
+    setRecordingSeconds(0);
+    setScreen("idle");
+  };
+
+  const cancelProcessing = () => {
+    requestAbortRef.current?.abort();
+    requestAbortRef.current = null;
+    setProcessingProgress(8);
+    setScreen("idle");
+    showToast("ì¼ê¸° ë§Œë“¤ê¸°ë¥¼ ì·¨ì†Œí–ˆì–´ìš”.");
+  };
+
+  const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const sourceFile = event.target.files?.[0];
+    event.target.value = "";
+    if (!sourceFile) return;
+    const file = normalizeMime(sourceFile);
+
+    if (!SUPPORTED_MIME_TYPES.has(file.type.toLowerCase())) {
+      setAppError({
+        title: "ì§€ì›í•˜ì§€ ì•ŠëŠ” íŒŒì¼ í˜•ì‹ì´ì—ìš”",
+        message: "ì´ ì˜¤ë””ì˜¤ í˜•ì‹ì€ ì•„ì§ ë°”ë¡œ ì²˜ë¦¬í•  ìˆ˜ ì—†ì–´ìš”.",
+        tip: "WAV, MP3, M4A, AAC, OGG, FLAC ë˜ëŠ” AIFF íŒŒì¼ì„ ì˜¬ë ¤ ì£¼ì„¸ìš”.",
+        kind: "audio",
+      });
+      setScreen("error");
+      return;
+    }
+
+    if (file.size > MAX_AUDIO_BYTES) {
+      setAppError({
+        title: "íŒŒì¼ í¬ê¸°ê°€ ë„ˆë¬´ ì»¤ìš”",
+        message: "ì˜¤ë””ì˜¤ íŒŒì¼ì€ 4MBê¹Œì§€ ì˜¬ë¦´ ìˆ˜ ìˆì–´ìš”.",
+        tip: "íŒŒì¼ì„ ì§§ê²Œ ë‚˜ëˆ„ê±°ë‚˜ ì••ì¶•í•œ ë’¤ ë‹¤ì‹œ ì‹œë„í•´ ì£¼ì„¸ìš”.",
+        kind: "audio",
+      });
+      setScreen("error");
+      return;
+    }
+
+    if (file.size < 4096) {
+      setAppError({
+        title: "ì˜¤ë””ì˜¤ ë‚´ìš©ì´ ë„ˆë¬´ ì§§ì•„ìš”",
+        message: "íŒŒì¼ì—ì„œ ì¶©ë¶„í•œ ìŒì„± ë°ì´í„°ë¥¼ ì°¾ì§€ ëª»í–ˆì–´ìš”.",
+        tip: "5ì´ˆ ì´ìƒì˜ ìŒì„±ì´ ë‹´ê¸´ íŒŒì¼ì„ ì„ íƒí•´ ì£¼ì„¸ìš”.",
+        kind: "audio",
+      });
+      setScreen("error");
+      return;
+    }
+
+    await generateDiary(file, style);
+  };
+
+  const startManualEntry = () => {
+    setManualEntry(true);
+    setCurrentDiary(null);
+    setEditTitle("ì˜¤ëŠ˜ì˜ ê¸°ë¡");
+    setEditBody("");
+    setInitialDraft("");
+    setEditHistory([""]);
+    setEditIndex(0);
+    setScreen("editing");
+  };
+
+  const startEditing = () => {
+    if (!currentDiary) return;
+    setManualEntry(false);
+    setEditTitle(currentDiary.title);
+    setEditBody(currentDiary.body);
+    setInitialDraft(currentDiary.body);
+    setEditHistory([currentDiary.body]);
+    setEditIndex(0);
+    setScreen("editing");
+  };
+
+  const updateEditBody = (value: string) => {
+    const limited = value.slice(0, 1000);
+    setEditBody(limited);
+    const nextHistory = [
+      ...editHistory.slice(0, editIndex + 1),
+      limited,
+    ].slice(-60);
+    setEditHistory(nextHistory);
+    setEditIndex(nextHistory.length - 1);
+  };
+
+  const undoEdit = () => {
+    if (editIndex <= 0) return;
+    const nextIndex = editIndex - 1;
+    setEditIndex(nextIndex);
+    setEditBody(editHistory[nextIndex]);
+  };
+
+  const redoEdit = () => {
+    if (editIndex >= editHistory.length - 1) return;
+    const nextIndex = editIndex + 1;
+    setEditIndex(nextIndex);
+    setEditBody(editHistory[nextIndex]);
+  };
+
+  const restoreDraft = () => {
+    updateEditBody(initialDraft);
+    showToast(manualEntry ? "ì‘ì„± ë‚´ìš©ì„ ë¹„ì› ì–´ìš”." : "AI ì´ˆì•ˆìœ¼ë¡œ ë³µì›í–ˆì–´ìš”.");
+  };
+
+  const finishEditing = () => {
+    if (editBody.trim().length < 5) {
+      showToast("ì¡°ê¸ˆë§Œ ë” ë‚´ìš©ì„ ì ì–´ ì£¼ì„¸ìš”.");
+      return;
+    }
+
+    const next: DiaryEntry = currentDiary
+      ? {
+          ...currentDiary,
+          title: editTitle.trim() || "ì˜¤ëŠ˜ì˜ ê¸°ë¡",
+          body: editBody.trim(),
+        }
+      : {
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+          title: editTitle.trim() || "ì˜¤ëŠ˜ì˜ ê¸°ë¡",
+          body: editBody.trim(),
+          mood: "ì°¨ë¶„í•¨",
+          keywords: [],
+          style,
+          transcriptSummary: "",
+        };
+    setCurrentDiary(next);
+    setScreen("result");
+    try {
+      window.localStorage.removeItem(EDIT_DRAFT_KEY);
+    } catch {
+      // Best-effort cleanup.
+    }
+  };
+
+  const saveCurrent = useCallback(() => {
+    if (!currentDiary) return;
+    setEntries((previous) => [
+      currentDiary,
+      ...previous.filter((entry) => entry.id !== currentDiary.id),
+    ]);
+  }, [currentDiary]);
+
+  const openExport = () => {
+    if (!currentDiary) return;
+    saveCurrent();
+    setExportOpen(true);
+    showToast("ì´ ê¸°ê¸°ì˜ ê¸°ë¡ì— ì €ì¥í–ˆì–´ìš”.");
+  };
+
+  const diaryAsText = useCallback(() => {
+    if (!currentDiary) return "";
+    const keywords = currentDiary.keywords.length
+      ? `\n#${currentDiary.keywords.join(" #")}`
+      : "";
+    return `${currentDiary.title}\n${formatFullDate(currentDiary.createdAt)}\n\n${currentDiary.body}${keywords}\n\nâ€” VoiceLog`;
+  }, [currentDiary]);
+
+  const downloadDiary = () => {
+    if (!currentDiary) return;
+    const blob = new Blob([diaryAsText()], {
+      type: "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `VoiceLog_${currentDiary.createdAt.slice(0, 10)}.txt`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    showToast("í…ìŠ¤íŠ¸ íŒŒì¼ë¡œ ë‚´ë³´ëƒˆì–´ìš”.");
+  };
+
+  const copyDiary = async () => {
+    await navigator.clipboard.writeText(diaryAsText());
+    showToast("ì¼ê¸°ë¥¼ í´ë¦½ë³´ë“œì— ë³µì‚¬í–ˆì–´ìš”.");
+  };
+
+  const shareDiary = async () => {
+    if (!currentDiary) return;
+    if (navigator.share) {
+      await navigator
+        .share({
+          title: currentDiary.title,
+          text: diaryAsText(),
+        })
+        .catch(() => undefined);
+      return;
+    }
+    await copyDiary();
+  };
+
+  const regenerate = async () => {
+    if (!audioBlob) {
+      showToast("ì´ ê¸°ë¡ì—ëŠ” ë‹¤ì‹œ ì‚¬ìš©í•  ìŒì„±ì´ ë‚¨ì•„ ìˆì§€ ì•Šì•„ìš”.");
+      return;
+    }
+    await generateDiary(audioBlob, style);
+  };
+
+  const openHistoryEntry = (entry: DiaryEntry) => {
+    setCurrentDiary(entry);
+    setStyle(entry.style);
+    setAudioBlob(null);
+    setTab("record");
+    setScreen("result");
+  };
+
+  const deleteEntry = (id: string) => {
+    setEntries((previous) => previous.filter((entry) => entry.id !== id));
+    showToast("ê¸°ë¡ì„ ì‚­ì œí–ˆì–´ìš”.");
+  };
+
+  const clearHistory = () => {
+    if (!entries.length) return;
+    if (!window.confirm("ì´ ê¸°ê¸°ì— ì €ì¥ëœ ëª¨ë“  ì¼ê¸°ë¥¼ ì‚­ì œí• ê¹Œìš”?")) return;
+    setEntries([]);
+    showToast("ì €ì¥ëœ ê¸°ë¡ì„ ëª¨ë‘ ì‚­ì œí–ˆì–´ìš”.");
+  };
+
+  const renderIdle = () => (
+    <div className="record-layout">
+      <section className="intro-column" aria-labelledby="record-title">
+        <span className="eyebrow">
+          <Sparkles size={15} />
+          ì˜¤ëŠ˜ì˜ ê¸°ë¡
+        </span>
+        <h1 id="record-title">ì˜¤ëŠ˜ ìˆì—ˆë˜ ì¼ì„ ë“¤ë ¤ì£¼ì„¸ìš”</h1>
+        <p className="lead">
+          ì™„ë²½í•˜ê²Œ ë§í•˜ì§€ ì•Šì•„ë„ ê´œì°®ì•„ìš”. í¸í•˜ê²Œ ì´ì•¼ê¸°í•˜ë©´ VoiceLogê°€
+          í•˜ë£¨ì˜ íë¦„ì„ ì •ëˆí•´ ì¼ê¸°ë¡œ ë°”ê¿”ë“œë ¤ìš”.
+        </p>
+
+        <fieldset className="style-fieldset">
+          <legend>ì¼ê¸° ìŠ¤íƒ€ì¼</legend>
+          <div className="style-options">
+            {STYLE_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className={`style-option ${
+                  style === option.value ? "is-selected" : ""
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="diary-style"
+                  value={option.value}
+                  checked={style === option.value}
+                  onChange={() => setStyle(option.value)}
+                />
+                <span className="style-check" aria-hidden="true">
+                  {style === option.value && <Check size={14} strokeWidth={3} />}
+                </span>
+                <span>
+                  <strong>{option.label}</strong>
+                  <small>{option.short}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="reassurance-note">
+          <ShieldCheck size={20} />
+          <p>
+            <strong>ì‰¬ì–´ ê°€ë©° ë§í•´ë„ ê´œì°®ì•„ìš”.</strong>
+            <span>ì •ì§€í•˜ê¸° ì „ê¹Œì§€ ê¸´ ê³µë°±ì´ ìƒê²¨ë„ ë…¹ìŒì€ ê³„ì†ë¼ìš”.</span>
+          </p>
+        </div>
+      </section>
+
+      <section className="recorder-card" aria-label="ìŒì„± ì…ë ¥">
+        <div className="recorder-ambient ambient-one" />
+        <div className="recorder-ambient ambient-two" />
+        <div className="recorder-card-top">
+          <span className="tiny-label">ì„ íƒí•œ ìŠ¤íƒ€ì¼</span>
+          <span className="selected-style-badge">
+            <Check size={14} />
+            {selectedStyle.label}
+          </span>
+        </div>
+        <div className="idle-visual">
+          <div className="wave-orb">
+            <Waveform levels={DEFAULT_LEVELS} />
+          </div>
+          <p>ë§ˆì´í¬ë¥¼ ëˆ„ë¥´ê³  ì˜¤ëŠ˜ì˜ ì´ì•¼ê¸°ë¥¼ ì‹œì‘í•´ ë³´ì„¸ìš”.</p>
+        </div>
+        <button
+          type="button"
+          className="primary-button record-start"
+          onClick={startRecording}
+          disabled={isMicStarting}
+        >
+          <Mic size={21} />
+          {isMicStarting ? "ë§ˆì´í¬ ì—°ê²° ì¤‘â€¦" : "ë…¹ìŒ ì‹œì‘"}
+        </button>
+        <div className="divider-label">
+          <span />
+          ë˜ëŠ”
+          <span />
+        </div>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload size={19} />
+          ì˜¤ë””ì˜¤ íŒŒì¼ ì—…ë¡œë“œ
+        </button>
+        <button type="button" className="text-button" onClick={startManualEntry}>
+          <FileText size={17} />
+          ìŒì„± ì—†ì´ ì§ì ‘ ì‘ì„±
+        </button>
+        <p className="file-hint">
+          WAV, MP3, M4A, AAC, OGG, FLAC Â· ìµœëŒ€ 4MB
+        </p>
+      </section>
+    </div>
+  );
+
+  const renderRecording = () => (
+    <section className="focus-panel recording-panel" aria-labelledby="recording-title">
+      <div className="focus-panel-head">
+        <button type="button" className="back-button" onClick={cancelRecording}>
+          <X size={20} />
+          ë…¹ìŒ ì·¨ì†Œ
+        </button>
+        <span className="live-badge">
+          <span />
+          ë…¹ìŒ ì¤‘
+        </span>
+      </div>
+      <div className="recording-copy">
+        <span className="eyebrow">{selectedStyle.label}</span>
+        <h1 id="recording-title">í¸í•˜ê²Œ ì´ì•¼ê¸°í•˜ê³  ìˆì–´ìš”</h1>
+        <p>ì¤‘ì–¼ê±°ë¦¬ê±°ë‚˜ ì ì‹œ ì‰¬ì–´ë„ ê´œì°®ì•„ìš”. ëª©ì†Œë¦¬ë¥¼ ë†“ì¹˜ì§€ ì•Šì„ê²Œìš”.</p>
+      </div>
+      <div className="live-wave-orb">
+        <Waveform levels={waveLevels} active />
+      </div>
+      <time className="recording-timer" aria-live="off">
+        {formatTimer(recordingSeconds)}
+      </time>
+      <div className="recording-tip">
+        <Headphones size={19} />
+        <span>íœ´ëŒ€í°ê³¼ 20cm ì •ë„ ê±°ë¦¬ë¥¼ ë‘ë©´ ë” ë˜ë ·í•˜ê²Œ ë“¤ë ¤ìš”.</span>
+      </div>
+      <button
+        type="button"
+        className="stop-button"
+        onClick={stopRecording}
+        aria-label="ë…¹ìŒì„ ì •ì§€í•˜ê³  ì¼ê¸° ë§Œë“¤ê¸°"
+      >
+        <span>
+          <Square size={24} fill="currentColor" />
+        </span>
+        ë…¹ìŒ ë§ˆì¹˜ê¸°
+      </button>
+    </section>
+  );
+
+  const renderProcessing = () => (
+    <section
+      className="focus-panel processing-panel"
+      aria-labelledby="processing-title"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="processing-visual" aria-hidden="true">
+        <div className="orbit orbit-one" />
+        <div className="orbit orbit-two" />
+        <div className="spark-core">
+          <Sparkles size={38} />
+        </div>
+      </div>
+      <span className="eyebrow">AI ì¼ê¸° ì‘ì„± ì¤‘</span>
+      <h1 id="processing-title">{processingMessage}</h1>
+      <p>
+        ì¶”ì„ìƒˆì™€ ê¸´ ê³µë°±ì€ ëœì–´ë‚´ê³ , ë§í•´ ì¤€ ì‚¬ì‹¤ê³¼ ê°ì •ì€ ê·¸ëŒ€ë¡œ
+        ì§€í‚¤ê³  ìˆì–´ìš”.
+      </p>
+      <div
+        className="progress-track"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={processingProgress}
+      >
+        <span style={{ width: `${processingProgress}%` }} />
+      </div>
+      <div className="privacy-inline">
+        <LockKeyhole size={16} />
+        ì¼ê¸° ìƒì„±ì„ ìœ„í•´ ì „ë‹¬ëœ ìŒì„±ì€ ë³„ë„ ë³´ê´€í•˜ì§€ ì•Šë„ë¡ ìš”ì²­ë¼ìš”.
+      </div>
+      <button
+        type="button"
+        className="secondary-button processing-cancel"
+        onClick={cancelProcessing}
+      >
+        <X size={18} />
+        ì‘ì—… ì·¨ì†Œ
+      </button>
+    </section>
+  );
+
+  const renderResult = () => {
+    if (!currentDiary) return renderIdle();
+    const resultStyle =
+      STYLE_OPTIONS.find((option) => option.value === currentDiary.style) ??
+      STYLE_OPTIONS[0];
+    return (
+      <section className="result-screen" aria-labelledby="result-title">
+        <div className="result-hero">
+          <div className="completion-mark">
+            <Sparkles size={28} />
+          </div>
+          <div>
+            <span className="eyebrow">ì¼ê¸° ì™„ì„±</span>
+            <h1 id="result-title">ì˜¤ëŠ˜ì˜ ì´ì•¼ê¸°ë¥¼ ì •ë¦¬í–ˆì–´ìš”</h1>
+            <p>{formatFullDate(currentDiary.createdAt)}</p>
+          </div>
+        </div>
+
+        <article className="diary-paper">
+          <div className="paper-meta">
+            <span className="style-chip">
+              <BookOpen size={15} />
+              {resultStyle.label}
+            </span>
+            <span className="mood-chip">{currentDiary.mood}</span>
+          </div>
+          <h2>{currentDiary.title}</h2>
+          <div className="diary-body">
+            {currentDiary.body.split(/\n+/).map((paragraph, index) => (
+              <p key={`${paragraph.slice(0, 12)}-${index}`}>{paragraph}</p>
+            ))}
+          </div>
+          {currentDiary.keywords.length > 0 && (
+            <div className="keyword-row" aria-label="ì¼ê¸° í‚¤ì›Œë“œ">
+              {currentDiary.keywords.map((keyword) => (
+                <span key={keyword}>#{keyword}</span>
+              ))}
+            </div>
+          )}
+        </article>
+
+        <div className="ai-review-note">
+          <ShieldCheck size={20} />
+          <p>
+            <strong>ë§ˆì§€ë§‰ í™•ì¸ì€ ì§ì ‘ í•´ì£¼ì„¸ìš”.</strong>
+            <span>
+              ì‹¤ì œ í•˜ë£¨ì˜ ì‚¬ì‹¤ê³¼ ê°ì •ì´ ì˜ ë‹´ê²¼ëŠ”ì§€ ì½ì–´ë³´ê³  ììœ ë¡­ê²Œ
+              ë‹¤ë“¬ì–´ ë³´ì„¸ìš”.
+            </span>
+          </p>
+        </div>
+
+        <div className="result-actions">
+          <button type="button" className="secondary-button" onClick={startEditing}>
+            <Pencil size={18} />
+            ìˆ˜ì •í•˜ê¸°
+          </button>
+          {audioBlob && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={regenerate}
+            >
+              <RefreshCw size={18} />
+              ë‹¤ì‹œ ìƒì„±
+            </button>
+          )}
+          <button type="button" className="primary-button" onClick={openExport}>
+            <Save size={19} />
+            ì €ì¥ Â· ë‚´ë³´ë‚´ê¸°
+          </button>
+        </div>
+      </section>
+    );
+  };
+
+  const renderEditing = () => (
+    <section className="editor-screen" aria-labelledby="editor-title">
+      <div className="editor-head">
+        <button
+          type="button"
+          className="back-button"
+          onClick={() => setScreen(currentDiary ? "result" : "idle")}
+        >
+          <ArrowLeft size={20} />
+          ëŒì•„ê°€ê¸°
+        </button>
+        <div className="undo-controls">
+          <IconButton
+            label="ì‹¤í–‰ ì·¨ì†Œ"
+            onClick={undoEdit}
+            disabled={editIndex <= 0}
+          >
+            <Undo2 size={18} />
+          </IconButton>
+          <IconButton
+            label="ë‹¤ì‹œ ì‹¤í–‰"
+            onClick={redoEdit}
+            disabled={editIndex >= editHistory.length - 1}
+          >
+            <Redo2 size={18} />
+          </IconButton>
+        </div>
+      </div>
+      <span className="eyebrow">{manualEntry ? "ì§ì ‘ ì‘ì„±" : "ì¼ê¸° ë‹¤ë“¬ê¸°"}</span>
+      <h1 id="editor-title">
+        {manualEntry ? "ì˜¤ëŠ˜ì˜ ê¸°ë¡ì„ ì ì–´ë³´ì„¸ìš”" : "ë‚´ ì´ì•¼ê¸°ë‹µê²Œ ë‹¤ë“¬ì–´ ë³´ì„¸ìš”"}
+      </h1>
+      <p className="editor-lead">
+        ìµœì¢… ê¸°ë¡ì˜ ì£¼ì²´ëŠ” ë‚˜ì˜ˆìš”. ì‚¬ì‹¤ê³¼ ë‹¤ë¥¸ ë¶€ë¶„ì´ë‚˜ ê°ì • í‘œí˜„ì„ í¸í•˜ê²Œ
+        ê³ ì³ ì£¼ì„¸ìš”.
+      </p>
+
+      <label className="editor-title-field">
+        <span>ì œëª©</span>
+        <input
+          value={editTitle}
+          maxLength={60}
+          onChange={(event) => setEditTitle(event.target.value)}
+          placeholder="ì˜¤ëŠ˜ì˜ ê¸°ë¡"
+        />
+      </label>
+      <label className="editor-body-field">
+        <span className="sr-only">ì¼ê¸° ë‚´ìš©</span>
+        <textarea
+          value={editBody}
+          onChange={(event) => updateEditBody(event.target.value)}
+          maxLength={1000}
+          autoFocus
+          placeholder="ì˜¤ëŠ˜ ìˆì—ˆë˜ ì¼ê³¼ ê·¸ë•Œì˜ ë§ˆìŒì„ ììœ ë¡­ê²Œ ì ì–´ë³´ì„¸ìš”."
+        />
+        <span className="character-count">{editBody.length} / 1000</span>
+      </label>
+      <div className="autosave-note">
+        <CheckCircle2 size={16} />
+        ì´ ê¸°ê¸°ì— ì´ˆì•ˆì´ ìë™ ì €ì¥ë¼ìš”.
+      </div>
+      <div className="editor-actions">
+        <button type="button" className="secondary-button" onClick={restoreDraft}>
+          <RotateCcw size={18} />
+          {manualEntry ? "ë‚´ìš© ë¹„ìš°ê¸°" : "AI ì´ˆì•ˆìœ¼ë¡œ ë³µì›"}
+        </button>
+        <button type="button" className="primary-button" onClick={finishEditing}>
+          <Check size={19} />
+          ìˆ˜ì • ì™„ë£Œ
+        </button>
+      </div>
+    </section>
+  );
+
+  const renderError = () => {
+    const error = appError ?? {
+      title: "ì ì‹œ ë¬¸ì œê°€ ìƒê²¼ì–´ìš”",
+      message: "ìš”ì²­ì„ ë§ˆì¹˜ì§€ ëª»í–ˆì–´ìš”.",
+      tip: "ì ì‹œ í›„ ë‹¤ì‹œ ì‹œë„í•´ ì£¼ì„¸ìš”.",
+      kind: "general" as const,
+    };
+    return (
+      <section className="focus-panel error-panel" aria-labelledby="error-title">
+        <div className={`error-icon error-${error.kind}`}>
+          {error.kind === "connection" ? (
+            <WifiOff size={42} />
+          ) : (
+            <VolumeX size={42} />
+          )}
+        </div>
+        <span className="eyebrow">ë‹¤ì‹œ ì‹œë„í•  ìˆ˜ ìˆì–´ìš”</span>
+        <h1 id="error-title">{error.title}</h1>
+        <p>{error.message}</p>
+        <div className="error-tip">
+          <Headphones size={19} />
+          {error.tip}
+        </div>
+        <div className="error-actions">
+          <button
+            type="button"
+            className="primary-button"
+            onClick={startRecording}
+          >
+            <Mic size={19} />
+            ë‹¤ì‹œ ë…¹ìŒí•˜ê¸°
+          </button>
+          {audioBlob && error.kind === "connection" && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={regenerate}
+            >
+              <RefreshCw size={18} />
+              ë‹¤ì‹œ ìƒì„±
+            </button>
+          )}
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload size={18} />
+            íŒŒì¼ ì—…ë¡œë“œ
+          </button>
+          <button type="button" className="text-button" onClick={startManualEntry}>
+            <FileText size={17} />
+            ì§ì ‘ í…ìŠ¤íŠ¸ ì‘ì„±
+          </button>
+        </div>
+        <button type="button" className="subtle-link" onClick={() => setScreen("idle")}>
+          ë©”ì¸ìœ¼ë¡œ ëŒì•„ê°€ê¸°
+        </button>
+      </section>
+    );
+  };
+
+  const renderHistory = () => (
+    <section className="history-screen" aria-labelledby="history-title">
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">ë‚˜ì˜ ê¸°ë¡</span>
+          <h1 id="history-title">ë‹¤ì‹œ í¼ì³ë³´ëŠ” í•˜ë£¨</h1>
+          <p>ì €ì¥í•œ ì¼ê¸°ëŠ” ì´ ê¸°ê¸°ì—ë§Œ ë³´ê´€ë¼ìš”.</p>
+        </div>
+        <button
+          type="button"
+          className="primary-button compact-button"
+          onClick={() => switchTab("record")}
+        >
+          <Plus size={18} />
+          ìƒˆ ê¸°ë¡
+        </button>
+      </div>
+
+      {entries.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-illustration">
+            <BookOpen size={38} />
+          </div>
+          <h2>ì•„ì§ ì €ì¥í•œ ì¼ê¸°ê°€ ì—†ì–´ìš”</h2>
+          <p>ì˜¤ëŠ˜ì˜ ì´ì•¼ê¸°ë¥¼ ë“¤ë ¤ì£¼ë©´ ì²« ë²ˆì§¸ ê¸°ë¡ì´ ì´ê³³ì— ìŒ“ì—¬ìš”.</p>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => switchTab("record")}
+          >
+            <Mic size={18} />
+            ì²« ì¼ê¸° ë§Œë“¤ê¸°
+          </button>
+        </div>
+      ) : (
+        <div className="history-list">
+          {entries.map((entry) => {
+            const option =
+              STYLE_OPTIONS.find((item) => item.value === entry.style) ??
+              STYLE_OPTIONS[0];
+            return (
+              <article key={entry.id} className="history-card">
+                <button
+                  type="button"
+                  className="history-card-main"
+                  onClick={() => openHistoryEntry(entry)}
+                >
+                  <span className="history-date">
+                    <strong>{formatShortDate(entry.createdAt)}</strong>
+                    <small>
+                      {new Intl.DateTimeFormat("ko-KR", {
+                        weekday: "short",
+                      }).format(new Date(entry.createdAt))}
+                    </small>
+                  </span>
+                  <span className="history-content">
+                    <span className="history-meta">
+                      <span>{option.label}</span>
+                      <span>{entry.mood}</span>
+                    </span>
+                    <strong>{entry.title}</strong>
+                    <span>{entry.body}</span>
+                  </span>
+                </button>
+                <IconButton
+                  label={`${entry.title} ì‚­ì œ`}
+                  onClick={() => deleteEntry(entry.id)}
+                >
+                  <Trash2 size={17} />
+                </IconButton>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+
+  const renderSettings = () => (
+    <section className="settings-screen" aria-labelledby="settings-title">
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">í™˜ê²½ ì„¤ì •</span>
+          <h1 id="settings-title">í¸ì•ˆí•œ ê¸°ë¡ì„ ìœ„í•œ ì„¤ì •</h1>
+          <p>ì—°ê²° ìƒíƒœì™€ ì´ ê¸°ê¸°ì— ë‚¨ëŠ” ë°ì´í„°ë¥¼ í™•ì¸í•  ìˆ˜ ìˆì–´ìš”.</p>
+        </div>
+      </div>
+
+      <div className="settings-grid">
+        <article className="settings-card connection-card">
+          <span className="settings-icon">
+            {connectionReady ? <Wifi size={22} /> : <WifiOff size={22} />}
+          </span>
+          <div>
+            <span className="settings-label">Gemini AI ì—°ê²°</span>
+            <strong>
+              {connectionReady === null
+                ? "í™•ì¸ ì¤‘"
+                : connectionReady
+                  ? "ì‚¬ìš© ê°€ëŠ¥"
+                  : "ì„¤ì • í•„ìš”"}
+            </strong>
+            <p>
+              {connectionReady
+                ? "ìŒì„±ì„ ë¶„ì„í•´ í•œêµ­ì–´ ì¼ê¸°ë¥¼ ë§Œë“¤ ì¤€ë¹„ê°€ ëì–´ìš”."
+                : "ê´€ë¦¬ìê°€ Gemini API ì—°ê²°ì„ ì™„ë£Œí•˜ë©´ AI ì¼ê¸° ë§Œë“¤ê¸°ë¥¼ ì‚¬ìš©í•  ìˆ˜ ìˆì–´ìš”."}
+            </p>
+          </div>
+          <span
+            className={`status-dot ${connectionReady ? "is-ready" : ""}`}
+            aria-hidden="true"
+          />
+        </article>
+
+        <article className="settings-card">
+          <span className="settings-icon mint">
+            <LockKeyhole size={22} />
+          </span>
+          <div>
+            <span className="settings-label">ê¸°ë¡ ë³´ê´€</span>
+            <strong>ì´ ê¸°ê¸°ì—ë§Œ ì €ì¥</strong>
+            <p>
+              ì €ì¥í•œ ì¼ê¸°ì™€ í¸ì§‘ ì¤‘ì¸ ì´ˆì•ˆì€ í˜„ì¬ ë¸Œë¼ìš°ì €ì˜ ë¡œì»¬ ì €ì¥ì†Œì—
+              ë³´ê´€ë¼ìš”.
+            </p>
+          </div>
+        </article>
+
+        <article className="settings-card">
+          <span className="settings-icon coral">
+            <FileAudio size={22} />
+          </span>
+          <div>
+            <span className="settings-label">ì˜¤ë””ì˜¤ ì…ë ¥</span>
+            <strong>ë…¹ìŒ ë˜ëŠ” íŒŒì¼ ì—…ë¡œë“œ</strong>
+            <p>
+              ë…¹ìŒì€ WAVë¡œ ì¤€ë¹„ë˜ë©°, WAVÂ·MP3Â·M4AÂ·AACÂ·OGGÂ·FLAC íŒŒì¼ì„
+              4MBê¹Œì§€ ì²˜ë¦¬í•´ìš”.
+            </p>
+          </div>
+        </article>
+      </div>
+
+      <div className="danger-zone">
+        <div>
+          <strong>ì €ì¥ëœ ê¸°ë¡ ëª¨ë‘ ì‚­ì œ</strong>
+          <p>ì´ ì‘ì—…ì€ ë˜ëŒë¦´ ìˆ˜ ì—†ì–´ìš”.</p>
+        </div>
+        <button
+          type="button"
+          className="danger-button"
+          onClick={clearHistory}
+          disabled={!entries.length}
+        >
+          <Trash2 size={17} />
+          ì „ì²´ ì‚­ì œ
+        </button>
+      </div>
+    </section>
+  );
+
+  const renderRecordScreen = () => {
+    if (screen === "recording") return renderRecording();
+    if (screen === "processing") return renderProcessing();
+    if (screen === "result") return renderResult();
+    if (screen === "editing") return renderEditing();
+    if (screen === "error") return renderError();
+    return renderIdle();
+  };
+
+  return (
+    <div className="site-shell">
+      <header className="app-header">
+        <button
+          type="button"
+          className="brand"
+          onClick={() => switchTab("record")}
+          aria-label="VoiceLog ë©”ì¸"
+        >
+          <LogoMark />
+          <span>
+            <strong>VoiceLog</strong>
+            <small>ëª©ì†Œë¦¬ë¡œ ë‚¨ê¸°ëŠ” ë‚˜ì˜ í•˜ë£¨</small>
+          </span>
+        </button>
+
+        <nav className="desktop-nav" aria-label="ì£¼ìš” ë©”ë‰´">
+          <button
+            type="button"
+            className={tab === "record" ? "is-active" : ""}
+            onClick={() => switchTab("record")}
+          >
+            <Mic size={18} />
+            ê¸°ë¡í•˜ê¸°
+          </button>
+          <button
+            type="button"
+            className={tab === "history" ? "is-active" : ""}
+            onClick={() => switchTab("history")}
+          >
+            <History size={18} />
+            ë‚˜ì˜ ê¸°ë¡
+          </button>
+          <button
+            type="button"
+            className={tab === "settings" ? "is-active" : ""}
+            onClick={() => switchTab("settings")}
+          >
+            <Settings2 size={18} />
+            ì„¤ì •
+          </button>
+        </nav>
+
+        <span className="local-badge">
+          <LockKeyhole size={15} />
+          ë¡œì»¬ ì €ì¥
+        </span>
+      </header>
+
+      <main ref={mainRef} tabIndex={-1} className="app-main">
+        {tab === "record"
+          ? renderRecordScreen()
+          : tab === "history"
+            ? renderHistory()
+            : renderSettings()}
+      </main>
+
+      <nav className="mobile-nav" aria-label="ì£¼ìš” ë©”ë‰´">
+        <button
+          type="button"
+          className={tab === "record" ? "is-active" : ""}
+          onClick={() => switchTab("record")}
+        >
+          <Mic size={21} />
+          <span>ê¸°ë¡</span>
+        </button>
+        <button
+          type="button"
+          className={tab === "history" ? "is-active" : ""}
+          onClick={() => switchTab("history")}
+        >
+          <History size={21} />
+          <span>ë‚˜ì˜ ê¸°ë¡</span>
+        </button>
+        <button
+          type="button"
+          className={tab === "settings" ? "is-active" : ""}
+          onClick={() => switchTab("settings")}
+        >
+          <Settings2 size={21} />
+          <span>ì„¤ì •</span>
+        </button>
+      </nav>
+
+      <input
+        ref={fileInputRef}
+        className="sr-only"
+        type="file"
+        accept=".wav,.mp3,.m4a,.mp4,.aac,.ogg,.flac,.aif,.aiff,audio/*"
+        onChange={handleFile}
+      />
+
+      {exportOpen && currentDiary && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setExportOpen(false);
+          }}
+        >
+          <section
+            className="export-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="export-title"
+          >
+            <div className="sheet-handle" />
+            <div className="export-head">
+              <div>
+                <span className="eyebrow">ì €ì¥ ì™„ë£Œ</span>
+                <h2 id="export-title">ì–´ë–»ê²Œ ë‚´ë³´ë‚¼ê¹Œìš”?</h2>
+              </div>
+              <IconButton label="ë‚´ë³´ë‚´ê¸° ë‹«ê¸°" onClick={() => setExportOpen(false)}>
+                <X size={20} />
+              </IconButton>
+            </div>
+            <p className="export-preview">{currentDiary.title}</p>
+            <div className="export-options">
+              <button type="button" onClick={downloadDiary}>
+                <span>
+                  <Download size={22} />
+                </span>
+                í…ìŠ¤íŠ¸ íŒŒì¼
+              </button>
+              <button type="button" onClick={copyDiary}>
+                <span>
+                  <Copy size={22} />
+                </span>
+                ë‚´ìš© ë³µì‚¬
+              </button>
+              <button type="button" onClick={shareDiary}>
+                <span>
+                  <Share2 size={22} />
+                </span>
+                ê³µìœ í•˜ê¸°
+              </button>
+            </div>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => {
+                setExportOpen(false);
+                switchTab("history");
+              }}
+            >
+              <History size={18} />
+              ì €ì¥ëœ ê¸°ë¡ ë³´ê¸°
+            </button>
+          </section>
+        </div>
+      )}
+
+      {toast && (
+        <div className="toast" role="status" aria-live="polite">
+          <CheckCircle2 size={18} />
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}

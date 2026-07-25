@@ -1,4 +1,4 @@
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const GEMINI_MODEL = "gemini-3.6-flash";
