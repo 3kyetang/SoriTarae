@@ -12,6 +12,8 @@ import {
   Headphones,
   History,
   LockKeyhole,
+  LogIn,
+  LogOut,
   Mic,
   Pencil,
   Plus,
@@ -27,6 +29,7 @@ import {
   Trash2,
   Undo2,
   Upload,
+  UserRound,
   VolumeX,
   Wifi,
   WifiOff,
@@ -42,7 +45,18 @@ import {
   useState,
 } from "react";
 
-type DiaryStyle = "basic" | "focus";
+import {
+  createClient as createSupabaseClient,
+  isSupabaseConfigured,
+} from "@/lib/supabase/client";
+import {
+  DiaryEntry,
+  DiaryRow,
+  DiaryStyle,
+  diaryEntryToRow,
+  diaryRowToEntry,
+} from "@/lib/diaries";
+
 type Screen =
   | "idle"
   | "recording"
@@ -51,17 +65,7 @@ type Screen =
   | "editing"
   | "error";
 type Tab = "record" | "history" | "settings";
-
-type DiaryEntry = {
-  id: string;
-  createdAt: string;
-  title: string;
-  body: string;
-  mood: string;
-  keywords: string[];
-  style: DiaryStyle;
-  transcriptSummary: string;
-};
+type GeneratedDiaryStyle = Exclude<DiaryStyle, "manual">;
 
 type AppError = {
   title: string;
@@ -71,7 +75,7 @@ type AppError = {
 };
 
 const STYLE_OPTIONS: Array<{
-  value: DiaryStyle;
+  value: GeneratedDiaryStyle;
   label: string;
   short: string;
   description: string;
@@ -89,6 +93,20 @@ const STYLE_OPTIONS: Array<{
     description: "꼭 기억하고 싶은 장면을 중심으로 정리해요.",
   },
 ];
+
+const MANUAL_STYLE_OPTION = {
+  value: "manual" as const,
+  label: "직접 작성",
+  short: "내가 직접 쓴 일기",
+  description: "AI의 편집 없이 작성한 내용을 그대로 보관해요.",
+};
+
+function getStyleOption(style: DiaryStyle) {
+  if (style === "manual") return MANUAL_STYLE_OPTION;
+  return (
+    STYLE_OPTIONS.find((option) => option.value === style) ?? STYLE_OPTIONS[0]
+  );
+}
 
 const SUPPORTED_MIME_TYPES = new Set([
   "audio/wav",
@@ -119,8 +137,72 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 };
 
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
-const HISTORY_KEY = "voicelog.entries.v1";
-const EDIT_DRAFT_KEY = "voicelog.edit-draft.v1";
+const HISTORY_KEY = "soritarae.entries.v1";
+const LEGACY_HISTORY_KEY = "voicelog.entries.v1";
+const EDIT_DRAFT_KEY = "soritarae.edit-draft.v1";
+const DIARY_SELECT_FIELDS =
+  "id,user_id,title,body,mood,keywords,style,transcript_summary,created_at,updated_at";
+
+function parseLocalDiaryEntries(raw: string | null): DiaryEntry[] {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.flatMap((value) => {
+      if (
+        typeof value !== "object" ||
+        value === null ||
+        !("id" in value) ||
+        !("createdAt" in value) ||
+        !("title" in value) ||
+        !("body" in value) ||
+        typeof value.id !== "string" ||
+        typeof value.createdAt !== "string" ||
+        typeof value.title !== "string" ||
+        typeof value.body !== "string"
+      ) {
+        return [];
+      }
+
+      const entry = value as Partial<DiaryEntry>;
+      const entryStyle: DiaryStyle =
+        entry.style === "basic" || entry.style === "manual"
+          ? entry.style
+          : "focus";
+
+      return [
+        {
+          id: value.id,
+          createdAt: value.createdAt,
+          title: value.title,
+          body: value.body,
+          mood: typeof entry.mood === "string" ? entry.mood : "",
+          keywords: Array.isArray(entry.keywords)
+            ? entry.keywords.filter(
+                (keyword): keyword is string => typeof keyword === "string",
+              )
+            : [],
+          style: entryStyle,
+          transcriptSummary:
+            typeof entry.transcriptSummary === "string"
+              ? entry.transcriptSummary
+              : "",
+        },
+      ];
+    });
+  } catch {
+    return [];
+  }
+}
+
+function readLocalDiaryEntries() {
+  return parseLocalDiaryEntries(
+    window.localStorage.getItem(HISTORY_KEY) ??
+      window.localStorage.getItem(LEGACY_HISTORY_KEY),
+  );
+}
 
 function LogoMark() {
   return (
@@ -275,10 +357,11 @@ const DEFAULT_LEVELS = [
   0.58, 0.33, 0.46, 0.25, 0.37, 0.2,
 ];
 
-export default function VoiceLogApp() {
+export default function SoriTaraeApp() {
+  const supabaseConfigured = isSupabaseConfigured();
   const [tab, setTab] = useState<Tab>("record");
   const [screen, setScreen] = useState<Screen>("idle");
-  const [style, setStyle] = useState<DiaryStyle>("focus");
+  const [style, setStyle] = useState<GeneratedDiaryStyle>("basic");
   const [waveLevels, setWaveLevels] = useState(DEFAULT_LEVELS);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isMicStarting, setIsMicStarting] = useState(false);
@@ -296,6 +379,28 @@ export default function VoiceLogApp() {
   const [exportOpen, setExportOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [connectionReady, setConnectionReady] = useState<boolean | null>(null);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(!supabaseConfigured);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [entriesReady, setEntriesReady] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [isSavingDiary, setIsSavingDiary] = useState(false);
+  const [localEntriesToMigrate, setLocalEntriesToMigrate] = useState<
+    DiaryEntry[]
+  >([]);
+  const [isMigratingHistory, setIsMigratingHistory] = useState(false);
+  const [migrationError, setMigrationError] = useState("");
+  const [migrationNoticeDismissed, setMigrationNoticeDismissed] =
+    useState(false);
+  const [deletingEntryIds, setDeletingEntryIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const supabase = useMemo(
+    () => (supabaseConfigured ? createSupabaseClient() : null),
+    [supabaseConfigured],
+  );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
@@ -330,28 +435,51 @@ export default function VoiceLogApp() {
     window.setTimeout(() => setToast(""), 2800);
   }, []);
 
-  useEffect(() => {
-    let savedEntries: DiaryEntry[] | null = null;
-    try {
-      const saved = window.localStorage.getItem(HISTORY_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as unknown;
-        if (Array.isArray(parsed)) {
-          savedEntries = (parsed as DiaryEntry[]).map((entry) => ({
-            ...entry,
-            style: entry.style === "basic" ? "basic" : "focus",
-          }));
-        }
-      }
-    } catch {
-      // A corrupt or unavailable local store should never block the recorder.
+  const handleSignOut = useCallback(async () => {
+    if (!supabase || isSigningOut) return;
+
+    setIsSigningOut(true);
+    const { error } = await supabase.auth.signOut();
+    setIsSigningOut(false);
+
+    if (error) {
+      showToast("로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      return;
     }
 
-    const hydrationTimer = window.setTimeout(() => {
-      historyHydratedRef.current = true;
-      if (savedEntries) setEntries(savedEntries);
-    }, 0);
+    setAuthEmail(null);
+    setAuthUserId(null);
+    window.location.assign("/");
+  }, [isSigningOut, showToast, supabase]);
 
+  useEffect(() => {
+    if (!supabase) return;
+
+    let isMounted = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!isMounted) return;
+      setAuthEmail(data.user?.email ?? null);
+      setAuthUserId(data.user?.id ?? null);
+      setAuthReady(true);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setAuthEmail(session?.user.email ?? null);
+      setAuthUserId(session?.user.id ?? null);
+      setAuthReady(true);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  useEffect(() => {
     fetch("/api/status")
       .then((response) => response.json())
       .then((data: { configured?: boolean }) =>
@@ -359,17 +487,62 @@ export default function VoiceLogApp() {
       )
       .catch(() => setConnectionReady(false));
 
-    return () => window.clearTimeout(hydrationTimer);
   }, []);
 
   useEffect(() => {
-    if (!historyHydratedRef.current) return;
+    if (!authReady) return;
+
+    let isActive = true;
+    const hydrationTimer = window.setTimeout(() => {
+      if (!isActive) return;
+      historyHydratedRef.current = false;
+      setEntriesReady(false);
+      setHistoryError("");
+
+      if (authUserId && supabase) {
+        setLocalEntriesToMigrate(readLocalDiaryEntries());
+        supabase
+          .from("diaries")
+          .select(DIARY_SELECT_FIELDS)
+          .order("created_at", { ascending: false })
+          .then(({ data, error }) => {
+            if (!isActive) return;
+            if (error) {
+              setEntries([]);
+              setHistoryError(
+                "클라우드 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+              );
+            } else {
+              setEntries(((data ?? []) as DiaryRow[]).map(diaryRowToEntry));
+            }
+            setEntriesReady(true);
+          });
+        return;
+      }
+
+      const savedEntries = readLocalDiaryEntries();
+
+      historyHydratedRef.current = true;
+      setLocalEntriesToMigrate([]);
+      setEntries(savedEntries);
+      setEntriesReady(true);
+    }, 0);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(hydrationTimer);
+    };
+  }, [authReady, authUserId, supabase]);
+
+  useEffect(() => {
+    if (!authReady || authUserId || !historyHydratedRef.current) return;
     try {
       window.localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+      window.localStorage.removeItem(LEGACY_HISTORY_KEY);
     } catch {
       // Local history is best-effort device storage.
     }
-  }, [entries]);
+  }, [authReady, authUserId, entries]);
 
   useEffect(() => {
     if (screen !== "editing") return;
@@ -446,7 +619,7 @@ export default function VoiceLogApp() {
   };
 
   const generateDiary = useCallback(
-    async (blob: Blob, selected: DiaryStyle) => {
+    async (blob: Blob, selected: GeneratedDiaryStyle) => {
       setAudioBlob(blob);
       setAppError(null);
       setProcessingProgress(8);
@@ -456,7 +629,7 @@ export default function VoiceLogApp() {
       requestAbortRef.current = controller;
 
       const filename =
-        blob instanceof File && blob.name ? blob.name : "voicelog-recording.wav";
+        blob instanceof File && blob.name ? blob.name : "soritarae-recording.wav";
       const file =
         blob instanceof File
           ? blob
@@ -640,7 +813,7 @@ export default function VoiceLogApp() {
           ? "마이크 권한이 필요해요"
           : "녹음을 시작하지 못했어요",
         message: permissionDenied
-          ? "브라우저에서 VoiceLog의 마이크 사용을 허용해 주세요."
+          ? "브라우저에서 SoriTarae의 마이크 사용을 허용해 주세요."
           : "현재 기기의 녹음 장치를 연결하지 못했어요.",
         tip: "권한을 허용한 뒤 다시 시도하거나, 오디오 파일 업로드를 이용해 주세요.",
         kind: "permission",
@@ -814,7 +987,7 @@ export default function VoiceLogApp() {
           body: editBody.trim(),
           mood: "차분함",
           keywords: [],
-          style,
+          style: "manual",
           transcriptSummary: "",
         };
     setCurrentDiary(next);
@@ -826,19 +999,59 @@ export default function VoiceLogApp() {
     }
   };
 
-  const saveCurrent = useCallback(() => {
-    if (!currentDiary) return;
+  const saveCurrent = useCallback(async () => {
+    if (!currentDiary || isSavingDiary) return false;
+
+    if (authUserId && supabase) {
+      setIsSavingDiary(true);
+      const { data, error } = await supabase
+        .from("diaries")
+        .upsert(diaryEntryToRow(currentDiary, authUserId), {
+          onConflict: "id",
+        })
+        .select(
+          DIARY_SELECT_FIELDS,
+        )
+        .single();
+      setIsSavingDiary(false);
+
+      if (error || !data) {
+        showToast("클라우드에 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        return false;
+      }
+
+      const savedEntry = diaryRowToEntry(data as DiaryRow);
+      setCurrentDiary(savedEntry);
+      setEntries((previous) => [
+        savedEntry,
+        ...previous.filter((entry) => entry.id !== savedEntry.id),
+      ]);
+      return true;
+    }
+
     setEntries((previous) => [
       currentDiary,
       ...previous.filter((entry) => entry.id !== currentDiary.id),
     ]);
-  }, [currentDiary]);
+    return true;
+  }, [
+    authUserId,
+    currentDiary,
+    isSavingDiary,
+    showToast,
+    supabase,
+  ]);
 
-  const openExport = () => {
+  const openExport = async () => {
     if (!currentDiary) return;
-    saveCurrent();
+    const saved = await saveCurrent();
+    if (!saved) return;
     setExportOpen(true);
-    showToast("이 기기의 기록에 저장했어요.");
+    showToast(
+      authUserId
+        ? "내 클라우드 기록에 저장했어요."
+        : "이 기기의 기록에 저장했어요.",
+    );
   };
 
   const diaryAsText = useCallback(() => {
@@ -846,7 +1059,7 @@ export default function VoiceLogApp() {
     const keywords = currentDiary.keywords.length
       ? `\n#${currentDiary.keywords.join(" #")}`
       : "";
-    return `${currentDiary.title}\n${formatFullDate(currentDiary.createdAt)}\n\n${currentDiary.body}${keywords}\n\n— VoiceLog`;
+    return `${currentDiary.title}\n${formatFullDate(currentDiary.createdAt)}\n\n${currentDiary.body}${keywords}\n\n— SoriTarae`;
   }, [currentDiary]);
 
   const downloadDiary = () => {
@@ -857,7 +1070,7 @@ export default function VoiceLogApp() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `VoiceLog_${currentDiary.createdAt.slice(0, 10)}.txt`;
+    anchor.download = `SoriTarae_${currentDiary.createdAt.slice(0, 10)}.txt`;
     anchor.click();
     URL.revokeObjectURL(url);
     showToast("텍스트 파일로 내보냈어요.");
@@ -892,20 +1105,129 @@ export default function VoiceLogApp() {
 
   const openHistoryEntry = (entry: DiaryEntry) => {
     setCurrentDiary(entry);
-    setStyle(entry.style);
+    if (entry.style !== "manual") setStyle(entry.style);
     setAudioBlob(null);
     setTab("record");
     setScreen("result");
   };
 
-  const deleteEntry = (id: string) => {
+  const migrateLocalHistory = async () => {
+    if (
+      !authUserId ||
+      !supabase ||
+      !localEntriesToMigrate.length ||
+      isMigratingHistory
+    ) {
+      return;
+    }
+
+    setIsMigratingHistory(true);
+    setMigrationError("");
+
+    const rows = localEntriesToMigrate.map((entry) =>
+      diaryEntryToRow(entry, authUserId),
+    );
+    const { error: uploadError } = await supabase
+      .from("diaries")
+      .upsert(rows, {
+        onConflict: "id",
+        ignoreDuplicates: true,
+      });
+
+    if (uploadError) {
+      setIsMigratingHistory(false);
+      setMigrationError(
+        "로컬 기록을 업로드하지 못했어요. 원본은 이 기기에 그대로 남아 있어요.",
+      );
+      return;
+    }
+
+    const { data, error: refreshError } = await supabase
+      .from("diaries")
+      .select(DIARY_SELECT_FIELDS)
+      .order("created_at", { ascending: false });
+
+    const refreshedEntries = ((data ?? []) as DiaryRow[]).map(diaryRowToEntry);
+    const refreshedIds = new Set(refreshedEntries.map((entry) => entry.id));
+    const allMigrated =
+      !refreshError &&
+      localEntriesToMigrate.every((entry) => refreshedIds.has(entry.id));
+
+    if (!allMigrated) {
+      setIsMigratingHistory(false);
+      setMigrationError(
+        "일부 기록을 확인하지 못해 로컬 원본을 유지했어요. 다시 시도해 주세요.",
+      );
+      return;
+    }
+
+    try {
+      window.localStorage.removeItem(HISTORY_KEY);
+      window.localStorage.removeItem(LEGACY_HISTORY_KEY);
+    } catch {
+      setIsMigratingHistory(false);
+      setEntries(refreshedEntries);
+      setMigrationError(
+        "클라우드 저장은 완료됐지만 이 기기의 사본을 정리하지 못했어요.",
+      );
+      return;
+    }
+
+    const migratedCount = localEntriesToMigrate.length;
+    setEntries(refreshedEntries);
+    setLocalEntriesToMigrate([]);
+    setIsMigratingHistory(false);
+    showToast(`로컬 기록 ${migratedCount}개를 클라우드로 가져왔어요.`);
+  };
+
+  const deleteEntry = async (id: string) => {
+    if (deletingEntryIds.has(id)) return;
+
+    if (authUserId && supabase) {
+      setDeletingEntryIds((previous) => new Set(previous).add(id));
+      const { error } = await supabase
+        .from("diaries")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", authUserId);
+      setDeletingEntryIds((previous) => {
+        const next = new Set(previous);
+        next.delete(id);
+        return next;
+      });
+
+      if (error) {
+        showToast("클라우드 기록을 삭제하지 못했어요.");
+        return;
+      }
+    }
+
     setEntries((previous) => previous.filter((entry) => entry.id !== id));
     showToast("기록을 삭제했어요.");
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
     if (!entries.length) return;
-    if (!window.confirm("이 기기에 저장된 모든 일기를 삭제할까요?")) return;
+    const storageLabel = authUserId ? "클라우드" : "이 기기";
+    if (
+      !window.confirm(
+        `${storageLabel}에 저장된 모든 일기를 삭제할까요? 이 작업은 되돌릴 수 없어요.`,
+      )
+    ) {
+      return;
+    }
+
+    if (authUserId && supabase) {
+      const { error } = await supabase
+        .from("diaries")
+        .delete()
+        .eq("user_id", authUserId);
+      if (error) {
+        showToast("클라우드 기록을 삭제하지 못했어요.");
+        return;
+      }
+    }
+
     setEntries([]);
     showToast("저장된 기록을 모두 삭제했어요.");
   };
@@ -919,7 +1241,7 @@ export default function VoiceLogApp() {
         </span>
         <h1 id="record-title">오늘 있었던 일을 들려주세요</h1>
         <p className="lead">
-          완벽하게 말하지 않아도 괜찮아요. 편하게 이야기하면 VoiceLog가
+          완벽하게 말하지 않아도 괜찮아요. 편하게 이야기하면 SoriTarae가
           하루의 흐름을 정돈해 일기로 바꿔드려요.
         </p>
 
@@ -1097,9 +1419,7 @@ export default function VoiceLogApp() {
 
   const renderResult = () => {
     if (!currentDiary) return renderIdle();
-    const resultStyle =
-      STYLE_OPTIONS.find((option) => option.value === currentDiary.style) ??
-      STYLE_OPTIONS[0];
+    const resultStyle = getStyleOption(currentDiary.style);
     return (
       <section className="result-screen" aria-labelledby="result-title">
         <div className="result-hero">
@@ -1162,9 +1482,14 @@ export default function VoiceLogApp() {
               다시 생성
             </button>
           )}
-          <button type="button" className="primary-button" onClick={openExport}>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={openExport}
+            disabled={isSavingDiary}
+          >
             <Save size={19} />
-            저장 · 내보내기
+            {isSavingDiary ? "저장 중..." : "저장 · 내보내기"}
           </button>
         </div>
       </section>
@@ -1230,7 +1555,7 @@ export default function VoiceLogApp() {
       </label>
       <div className="autosave-note">
         <CheckCircle2 size={16} />
-        이 기기에 초안이 자동 저장돼요.
+        편집 중인 초안은 이 기기에 자동 저장돼요.
       </div>
       <div className="editor-actions">
         <button type="button" className="secondary-button" onClick={restoreDraft}>
@@ -1313,7 +1638,11 @@ export default function VoiceLogApp() {
         <div>
           <span className="eyebrow">나의 기록</span>
           <h1 id="history-title">다시 펼쳐보는 하루</h1>
-          <p>저장한 일기는 이 기기에만 보관돼요.</p>
+          <p>
+            {authUserId
+              ? "로그인한 계정의 클라우드 기록이에요."
+              : "로그인하지 않은 기록은 이 기기에만 보관돼요."}
+          </p>
         </div>
         <button
           type="button"
@@ -1325,7 +1654,75 @@ export default function VoiceLogApp() {
         </button>
       </div>
 
-      {entries.length === 0 ? (
+      {authUserId &&
+        entriesReady &&
+        !historyError &&
+        localEntriesToMigrate.length > 0 &&
+        !migrationNoticeDismissed && (
+          <aside className="migration-banner" aria-labelledby="migration-title">
+            <span className="migration-icon" aria-hidden="true">
+              <Upload size={22} />
+            </span>
+            <div>
+              <strong id="migration-title">
+                이 기기에 저장된 기록 {localEntriesToMigrate.length}개가 있어요
+              </strong>
+              <p>
+                내 클라우드 기록으로 가져올 수 있어요. 모두 확인되기 전에는
+                로컬 원본을 삭제하지 않아요.
+              </p>
+              {migrationError && (
+                <p className="migration-error" role="alert">
+                  {migrationError}
+                </p>
+              )}
+            </div>
+            <div className="migration-actions">
+              <button
+                type="button"
+                className="primary-button compact-button"
+                onClick={migrateLocalHistory}
+                disabled={isMigratingHistory}
+              >
+                {isMigratingHistory ? "가져오는 중..." : "클라우드로 가져오기"}
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setMigrationNoticeDismissed(true)}
+                disabled={isMigratingHistory}
+              >
+                나중에
+              </button>
+            </div>
+          </aside>
+        )}
+
+      {!entriesReady ? (
+        <div className="empty-state" role="status">
+          <div className="empty-illustration">
+            <RefreshCw size={34} />
+          </div>
+          <h2>기록을 불러오고 있어요</h2>
+          <p>잠시만 기다려 주세요.</p>
+        </div>
+      ) : historyError ? (
+        <div className="empty-state" role="alert">
+          <div className="empty-illustration">
+            <WifiOff size={34} />
+          </div>
+          <h2>기록을 불러오지 못했어요</h2>
+          <p>{historyError}</p>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw size={18} />
+            다시 시도
+          </button>
+        </div>
+      ) : entries.length === 0 ? (
         <div className="empty-state">
           <div className="empty-illustration">
             <BookOpen size={38} />
@@ -1344,9 +1741,7 @@ export default function VoiceLogApp() {
       ) : (
         <div className="history-list">
           {entries.map((entry) => {
-            const option =
-              STYLE_OPTIONS.find((item) => item.value === entry.style) ??
-              STYLE_OPTIONS[0];
+            const option = getStyleOption(entry.style);
             return (
               <article key={entry.id} className="history-card">
                 <button
@@ -1374,6 +1769,7 @@ export default function VoiceLogApp() {
                 <IconButton
                   label={`${entry.title} 삭제`}
                   onClick={() => deleteEntry(entry.id)}
+                  disabled={deletingEntryIds.has(entry.id)}
                 >
                   <Trash2 size={17} />
                 </IconButton>
@@ -1391,7 +1787,7 @@ export default function VoiceLogApp() {
         <div>
           <span className="eyebrow">환경 설정</span>
           <h1 id="settings-title">편안한 기록을 위한 설정</h1>
-          <p>연결 상태와 이 기기에 남는 데이터를 확인할 수 있어요.</p>
+          <p>AI 연결 상태와 일기 저장 위치를 확인할 수 있어요.</p>
         </div>
       </div>
 
@@ -1427,10 +1823,11 @@ export default function VoiceLogApp() {
           </span>
           <div>
             <span className="settings-label">기록 보관</span>
-            <strong>이 기기에만 저장</strong>
+            <strong>{authUserId ? "내 계정의 클라우드에 저장" : "이 기기에만 저장"}</strong>
             <p>
-              저장한 일기와 편집 중인 초안은 현재 브라우저의 로컬 저장소에
-              보관돼요.
+              {authUserId
+                ? "완성해 저장한 일기는 Supabase에, 편집 중인 초안은 현재 브라우저에 보관돼요."
+                : "저장한 일기와 편집 중인 초안은 현재 브라우저의 로컬 저장소에 보관돼요."}
             </p>
           </div>
         </article>
@@ -1459,7 +1856,7 @@ export default function VoiceLogApp() {
           type="button"
           className="danger-button"
           onClick={clearHistory}
-          disabled={!entries.length}
+          disabled={!entriesReady || !entries.length}
         >
           <Trash2 size={17} />
           전체 삭제
@@ -1484,11 +1881,11 @@ export default function VoiceLogApp() {
           type="button"
           className="brand"
           onClick={() => switchTab("record")}
-          aria-label="VoiceLog 메인"
+          aria-label="SoriTarae 메인"
         >
           <LogoMark />
           <span>
-            <strong>VoiceLog</strong>
+            <strong>SoriTarae</strong>
             <small>목소리로 남기는 나의 하루</small>
           </span>
         </button>
@@ -1520,10 +1917,41 @@ export default function VoiceLogApp() {
           </button>
         </nav>
 
-        <span className="local-badge">
-          <LockKeyhole size={15} />
-          로컬 저장
-        </span>
+        <div className="header-account">
+          <span className="local-badge">
+            <LockKeyhole size={15} />
+            {!authReady
+              ? "저장소 확인 중"
+              : authUserId
+                ? "클라우드 저장"
+                : "로컬 저장"}
+          </span>
+
+          {authReady && authEmail ? (
+            <>
+              <span className="account-email" title={authEmail}>
+                <UserRound size={15} />
+                <span>{authEmail}</span>
+              </span>
+              <button
+                type="button"
+                className="account-button"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+              >
+                <LogOut size={15} />
+                {isSigningOut ? "처리 중" : "로그아웃"}
+              </button>
+            </>
+          ) : authReady ? (
+            <a className="account-button" href="/auth/login">
+              <LogIn size={15} />
+              로그인
+            </a>
+          ) : (
+            <span className="account-loading" aria-label="로그인 상태 확인 중" />
+          )}
+        </div>
       </header>
 
       <main ref={mainRef} tabIndex={-1} className="app-main">

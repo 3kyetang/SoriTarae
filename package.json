@@ -1,5 +1,5 @@
 {
-  "name": "voicelog",
+  "name": "soritarae",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -9,10 +9,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "npm run build && node --test tests/source.test.mjs",
+    "test": "npm run build && node --test",
     "lint": "eslint . --ignore-pattern .next --ignore-pattern dist --ignore-pattern .vinext"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.9",
     "lucide-react": "^1.26.0",
     "next": "16.2.6",
     "react": "19.2.6",
