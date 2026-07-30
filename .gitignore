@@ -48,3 +48,9 @@ next-env.d.ts
 /.agents/
 /.codex/
 /public/og.png
+
+# local Python embedding service
+embedding-service/.venv/
+embedding-service/__pycache__/
+embedding-service/.cache/
+*.py[cod]
