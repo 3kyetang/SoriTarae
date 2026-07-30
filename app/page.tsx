@@ -14,6 +14,7 @@ import {
   LockKeyhole,
   LogIn,
   LogOut,
+  MessageCircle,
   Mic,
   Pencil,
   Plus,
@@ -21,6 +22,7 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  Send,
   Settings2,
   Share2,
   ShieldCheck,
@@ -37,6 +39,7 @@ import {
 } from "lucide-react";
 import {
   ChangeEvent,
+  FormEvent,
   ReactNode,
   useCallback,
   useEffect,
@@ -64,10 +67,27 @@ type Screen =
   | "result"
   | "editing"
   | "error";
-type Tab = "record" | "history" | "settings";
+type Tab = "record" | "history" | "ask" | "settings";
 type GeneratedDiaryStyle = Exclude<DiaryStyle, "manual">;
 type EmbeddingSyncState = "idle" | "syncing" | "ready" | "error";
 type SaveDiaryResult = "failed" | "saved" | "saved-without-embedding";
+type RagRequestState = "idle" | "loading" | "success" | "error";
+
+type RagSource = {
+  sourceNumber: number;
+  diaryId: string;
+  title: string;
+  createdAt: string;
+  similarity: number | null;
+  retrievalMethod: "semantic" | "recent" | "both";
+};
+
+type RagAnswer = {
+  answer: string;
+  grounded: boolean;
+  sources: RagSource[];
+  model: string | null;
+};
 
 type AppError = {
   title: string;
@@ -108,6 +128,51 @@ function getStyleOption(style: DiaryStyle) {
   return (
     STYLE_OPTIONS.find((option) => option.value === style) ?? STYLE_OPTIONS[0]
   );
+}
+
+const RAG_QUESTION_SUGGESTIONS = [
+  "최근에 했던 일이 뭐야?",
+  "요즘 나는 어떤 감정을 자주 느꼈어?",
+  "힘들었던 순간에는 무엇이 도움이 됐어?",
+] as const;
+
+function isRagSource(value: unknown): value is RagSource {
+  if (typeof value !== "object" || value === null) return false;
+  const source = value as Partial<RagSource>;
+  return (
+    typeof source.sourceNumber === "number" &&
+    typeof source.diaryId === "string" &&
+    typeof source.title === "string" &&
+    typeof source.createdAt === "string" &&
+    (typeof source.similarity === "number" || source.similarity === null) &&
+    (source.retrievalMethod === "semantic" ||
+      source.retrievalMethod === "recent" ||
+      source.retrievalMethod === "both")
+  );
+}
+
+function isRagAnswer(value: unknown): value is RagAnswer {
+  if (typeof value !== "object" || value === null) return false;
+  const answer = value as Partial<RagAnswer>;
+  return (
+    typeof answer.answer === "string" &&
+    typeof answer.grounded === "boolean" &&
+    Array.isArray(answer.sources) &&
+    answer.sources.every(isRagSource) &&
+    (typeof answer.model === "string" || answer.model === null)
+  );
+}
+
+function ragApiErrorMessage(value: unknown) {
+  if (typeof value !== "object" || value === null) return null;
+  const response = value as {
+    error?: {
+      message?: unknown;
+    };
+  };
+  return typeof response.error?.message === "string"
+    ? response.error.message
+    : null;
 }
 
 const SUPPORTED_MIME_TYPES = new Set([
@@ -397,6 +462,11 @@ export default function SoriTaraeApp() {
     useState(false);
   const [embeddingSyncState, setEmbeddingSyncState] =
     useState<EmbeddingSyncState>("idle");
+  const [ragQuestion, setRagQuestion] = useState("");
+  const [ragRequestState, setRagRequestState] =
+    useState<RagRequestState>("idle");
+  const [ragAnswer, setRagAnswer] = useState<RagAnswer | null>(null);
+  const [ragError, setRagError] = useState("");
   const [deletingEntryIds, setDeletingEntryIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -422,6 +492,7 @@ export default function SoriTaraeApp() {
   const requestAbortRef = useRef<AbortController | null>(null);
   const historyHydratedRef = useRef(false);
   const embeddingSyncAttemptedForUserRef = useRef<string | null>(null);
+  const ragRequestAbortRef = useRef<AbortController | null>(null);
 
   const selectedStyle = useMemo(
     () => STYLE_OPTIONS.find((option) => option.value === style)!,
@@ -485,6 +556,65 @@ export default function SoriTaraeApp() {
     return false;
   }, [authUserId]);
 
+  const askDiaryQuestion = useCallback(async () => {
+    const question = ragQuestion.trim();
+    if (!authUserId) {
+      setRagRequestState("error");
+      setRagError("내 일기에 질문하려면 먼저 로그인해 주세요.");
+      return;
+    }
+    if (question.length < 2) {
+      setRagRequestState("error");
+      setRagError("질문을 두 글자 이상 입력해 주세요.");
+      return;
+    }
+
+    ragRequestAbortRef.current?.abort();
+    const controller = new AbortController();
+    ragRequestAbortRef.current = controller;
+    setRagRequestState("loading");
+    setRagAnswer(null);
+    setRagError("");
+
+    try {
+      const response = await fetch("/api/rag/answer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question }),
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      const payload: unknown = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          ragApiErrorMessage(payload) ??
+            "답변을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        );
+      }
+      if (!isRagAnswer(payload)) {
+        throw new Error("답변 형식을 확인할 수 없습니다. 다시 시도해 주세요.");
+      }
+
+      setRagAnswer(payload);
+      setRagRequestState("success");
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setRagRequestState("error");
+      setRagError(
+        error instanceof Error
+          ? error.message
+          : "답변을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      );
+    } finally {
+      if (ragRequestAbortRef.current === controller) {
+        ragRequestAbortRef.current = null;
+      }
+    }
+  }, [authUserId, ragQuestion]);
+
   const handleSignOut = useCallback(async () => {
     if (!supabase || isSigningOut) return;
 
@@ -528,6 +658,13 @@ export default function SoriTaraeApp() {
       subscription.unsubscribe();
     };
   }, [supabase]);
+
+  useEffect(
+    () => () => {
+      ragRequestAbortRef.current?.abort();
+    },
+    [],
+  );
 
   useEffect(() => {
     fetch("/api/status")
@@ -1186,6 +1323,22 @@ export default function SoriTaraeApp() {
     setAudioBlob(null);
     setTab("record");
     setScreen("result");
+  };
+
+  const openRagSource = (source: RagSource) => {
+    const entry = entries.find((candidate) => candidate.id === source.diaryId);
+    if (entry) {
+      openHistoryEntry(entry);
+      return;
+    }
+
+    setTab("history");
+    showToast("참고한 일기를 기록 목록에서 확인해 주세요.");
+  };
+
+  const submitRagQuestion = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void askDiaryQuestion();
   };
 
   const migrateLocalHistory = async () => {
@@ -1859,6 +2012,196 @@ export default function SoriTaraeApp() {
     </section>
   );
 
+  const renderAsk = () => (
+    <section className="ask-screen" aria-labelledby="ask-title">
+      <div className="section-heading ask-heading">
+        <div>
+          <span className="eyebrow">
+            <Sparkles size={15} />
+            나의 기록 돌아보기
+          </span>
+          <h1 id="ask-title">내 일기에 질문해 보세요</h1>
+          <p>
+            저장한 일기에서 관련 기록을 찾아, 그 내용에 근거해 답해드려요.
+          </p>
+        </div>
+      </div>
+
+      {!authReady ? (
+        <div className="ask-gate" role="status">
+          <RefreshCw size={30} />
+          <strong>로그인 상태를 확인하고 있어요</strong>
+        </div>
+      ) : !authUserId ? (
+        <div className="ask-gate">
+          <span className="ask-gate-icon">
+            <LockKeyhole size={30} />
+          </span>
+          <h2>로그인한 기록에서만 질문할 수 있어요</h2>
+          <p>
+            계정별 일기를 안전하게 구분하기 위해 로그인 후 질문 기능을
+            제공해요.
+          </p>
+          <a className="primary-button" href="/auth/login">
+            <LogIn size={18} />
+            로그인하기
+          </a>
+        </div>
+      ) : (
+        <>
+          <form className="question-card" onSubmit={submitRagQuestion}>
+            <label htmlFor="rag-question">궁금한 내용을 적어 주세요</label>
+            <div className="question-field">
+              <textarea
+                id="rag-question"
+                value={ragQuestion}
+                onChange={(event) =>
+                  setRagQuestion(event.target.value.slice(0, 500))
+                }
+                placeholder="예: 최근에 내가 기뻐했던 일은 뭐야?"
+                maxLength={500}
+                disabled={ragRequestState === "loading"}
+              />
+              <span>{ragQuestion.length}/500</span>
+            </div>
+            <div className="question-actions">
+              <div className="question-suggestions" aria-label="추천 질문">
+                {RAG_QUESTION_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setRagQuestion(suggestion)}
+                    disabled={ragRequestState === "loading"}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="submit"
+                className="primary-button ask-submit"
+                disabled={
+                  ragRequestState === "loading" ||
+                  ragQuestion.trim().length < 2
+                }
+              >
+                {ragRequestState === "loading" ? (
+                  <RefreshCw className="is-spinning" size={18} />
+                ) : (
+                  <Send size={18} />
+                )}
+                {ragRequestState === "loading" ? "찾는 중" : "질문하기"}
+              </button>
+            </div>
+          </form>
+
+          {ragRequestState === "idle" && (
+            <div className="ask-empty">
+              <span>
+                <MessageCircle size={30} />
+              </span>
+              <strong>일기 속 기억을 함께 찾아볼게요</strong>
+              <p>
+                사건, 감정, 사람에 대해 묻거나 “최근에 무엇을 했어?”처럼
+                시간에 관한 질문도 할 수 있어요.
+              </p>
+            </div>
+          )}
+
+          {ragRequestState === "loading" && (
+            <div className="ask-loading" role="status" aria-live="polite">
+              <span className="ask-loading-icon">
+                <Sparkles size={25} />
+              </span>
+              <div>
+                <strong>관련 일기를 찾고 있어요</strong>
+                <p>의미와 날짜를 함께 살펴본 뒤 답변을 정리할게요.</p>
+              </div>
+            </div>
+          )}
+
+          {ragRequestState === "error" && (
+            <div className="ask-error" role="alert">
+              <div>
+                <strong>답변을 가져오지 못했어요</strong>
+                <p>{ragError}</p>
+              </div>
+              <button
+                type="button"
+                className="secondary-button compact-button"
+                onClick={() => void askDiaryQuestion()}
+              >
+                <RefreshCw size={17} />
+                다시 시도
+              </button>
+            </div>
+          )}
+
+          {ragRequestState === "success" && ragAnswer && (
+            <article className="rag-answer-card" aria-live="polite">
+              <header className="rag-answer-head">
+                <span className="rag-answer-icon">
+                  <Sparkles size={22} />
+                </span>
+                <div>
+                  <span className="settings-label">SoriTarae의 답변</span>
+                  <strong>
+                    {ragAnswer.grounded
+                      ? "내 일기에서 찾았어요"
+                      : "충분한 기록을 찾지 못했어요"}
+                  </strong>
+                </div>
+              </header>
+              <p className="rag-answer-text">{ragAnswer.answer}</p>
+
+              {ragAnswer.sources.length > 0 && (
+                <div className="rag-sources">
+                  <span className="rag-sources-label">
+                    <BookOpen size={16} />
+                    참고한 일기
+                  </span>
+                  <div className="rag-source-list">
+                    {ragAnswer.sources.map((source) => (
+                      <button
+                        key={`${source.sourceNumber}-${source.diaryId}`}
+                        type="button"
+                        className="rag-source-card"
+                        onClick={() => openRagSource(source)}
+                      >
+                        <span className="rag-source-number">
+                          {source.sourceNumber}
+                        </span>
+                        <span>
+                          <strong>{source.title}</strong>
+                          <small>
+                            {formatFullDate(source.createdAt)}
+                            {" · "}
+                            {source.retrievalMethod === "recent"
+                              ? "최신 기록"
+                              : source.retrievalMethod === "both"
+                                ? "의미·날짜 일치"
+                                : `${Math.round((source.similarity ?? 0) * 100)}% 유사`}
+                          </small>
+                        </span>
+                        <ArrowLeft className="source-arrow" size={17} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="rag-caution">
+                <ShieldCheck size={17} />
+                답변은 선택된 내 일기에만 근거하며, 중요한 내용은 원문도
+                함께 확인해 주세요.
+              </div>
+            </article>
+          )}
+        </>
+      )}
+    </section>
+  );
+
   const renderSettings = () => (
     <section className="settings-screen" aria-labelledby="settings-title">
       <div className="section-heading">
@@ -2023,6 +2366,14 @@ export default function SoriTaraeApp() {
           </button>
           <button
             type="button"
+            className={tab === "ask" ? "is-active" : ""}
+            onClick={() => switchTab("ask")}
+          >
+            <MessageCircle size={18} />
+            질문하기
+          </button>
+          <button
+            type="button"
             className={tab === "settings" ? "is-active" : ""}
             onClick={() => switchTab("settings")}
           >
@@ -2073,7 +2424,9 @@ export default function SoriTaraeApp() {
           ? renderRecordScreen()
           : tab === "history"
             ? renderHistory()
-            : renderSettings()}
+            : tab === "ask"
+              ? renderAsk()
+              : renderSettings()}
       </main>
 
       <nav className="mobile-nav" aria-label="주요 메뉴">
@@ -2092,6 +2445,14 @@ export default function SoriTaraeApp() {
         >
           <History size={21} />
           <span>나의 기록</span>
+        </button>
+        <button
+          type="button"
+          className={tab === "ask" ? "is-active" : ""}
+          onClick={() => switchTab("ask")}
+        >
+          <MessageCircle size={21} />
+          <span>질문</span>
         </button>
         <button
           type="button"
