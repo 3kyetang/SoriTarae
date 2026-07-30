@@ -1,12 +1,14 @@
 import { z } from "zod";
 
+import {
+  GEMINI_INTERACTIONS_URL,
+  GEMINI_MODEL,
+} from "@/lib/gemini/config";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-const GEMINI_MODEL = "gemini-3.6-flash";
-const GEMINI_INTERACTIONS_URL =
-  "https://generativelanguage.googleapis.com/v1beta/interactions";
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 const MAX_MULTIPART_BYTES = Math.floor(4.45 * 1024 * 1024);
 const GEMINI_TIMEOUT_MS = 90_000;
