@@ -30,6 +30,14 @@ const envExample = await readFile(
   new URL("../.env.example", import.meta.url),
   "utf8",
 );
+const dockerfile = await readFile(
+  new URL("../embedding-service/Dockerfile", import.meta.url),
+  "utf8",
+);
+const dockerignore = await readFile(
+  new URL("../embedding-service/.dockerignore", import.meta.url),
+  "utf8",
+);
 
 test("pins the local Korean embedding runtime", () => {
   assert.match(requirements, /^fastapi\[standard\]==0\.139\.2$/m);
@@ -77,4 +85,14 @@ test("validates the model identity and every 768-dimensional vector", () => {
     embeddingClient,
     /payload\.embeddings\.length !== texts\.length/,
   );
+});
+
+test("builds a secret-safe Cloud Run embedding container", () => {
+  assert.match(dockerfile, /python:3\.11-slim/);
+  assert.match(dockerfile, /SentenceTransformer\('jhgan\/ko-sroberta-multitask'\)/);
+  assert.match(dockerfile, /HF_HUB_OFFLINE=1/);
+  assert.match(dockerfile, /USER appuser/);
+  assert.match(dockerfile, /\$\{PORT:-8080\}/);
+  assert.doesNotMatch(dockerfile, /COPY \. \./);
+  assert.match(dockerignore, /^\.env\.\*$/m);
 });
