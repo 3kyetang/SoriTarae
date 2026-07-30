@@ -66,6 +66,8 @@ type Screen =
   | "error";
 type Tab = "record" | "history" | "settings";
 type GeneratedDiaryStyle = Exclude<DiaryStyle, "manual">;
+type EmbeddingSyncState = "idle" | "syncing" | "ready" | "error";
+type SaveDiaryResult = "failed" | "saved" | "saved-without-embedding";
 
 type AppError = {
   title: string;
@@ -393,6 +395,8 @@ export default function SoriTaraeApp() {
   const [migrationError, setMigrationError] = useState("");
   const [migrationNoticeDismissed, setMigrationNoticeDismissed] =
     useState(false);
+  const [embeddingSyncState, setEmbeddingSyncState] =
+    useState<EmbeddingSyncState>("idle");
   const [deletingEntryIds, setDeletingEntryIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -417,6 +421,7 @@ export default function SoriTaraeApp() {
   const startedAtRef = useRef(0);
   const requestAbortRef = useRef<AbortController | null>(null);
   const historyHydratedRef = useRef(false);
+  const embeddingSyncAttemptedForUserRef = useRef<string | null>(null);
 
   const selectedStyle = useMemo(
     () => STYLE_OPTIONS.find((option) => option.value === style)!,
@@ -434,6 +439,51 @@ export default function SoriTaraeApp() {
     setToast(message);
     window.setTimeout(() => setToast(""), 2800);
   }, []);
+
+  const requestDiaryEmbedding = useCallback(async (diaryId: string) => {
+    try {
+      const response = await fetch(
+        `/api/diaries/${encodeURIComponent(diaryId)}/embedding`,
+        {
+          method: "POST",
+          cache: "no-store",
+        },
+      );
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const synchronizeAllDiaryEmbeddings = useCallback(async () => {
+    if (!authUserId) return false;
+
+    setEmbeddingSyncState("syncing");
+    try {
+      for (let requestIndex = 0; requestIndex < 4; requestIndex += 1) {
+        const response = await fetch("/api/diaries/embeddings", {
+          method: "POST",
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          setEmbeddingSyncState("error");
+          return false;
+        }
+
+        const result = (await response.json()) as { remaining?: number };
+        if (!result.remaining) {
+          setEmbeddingSyncState("ready");
+          return true;
+        }
+      }
+    } catch {
+      setEmbeddingSyncState("error");
+      return false;
+    }
+
+    setEmbeddingSyncState("error");
+    return false;
+  }, [authUserId]);
 
   const handleSignOut = useCallback(async () => {
     if (!supabase || isSigningOut) return;
@@ -533,6 +583,28 @@ export default function SoriTaraeApp() {
       window.clearTimeout(hydrationTimer);
     };
   }, [authReady, authUserId, supabase]);
+
+  useEffect(() => {
+    if (!authUserId) {
+      embeddingSyncAttemptedForUserRef.current = null;
+      return;
+    }
+    if (
+      !entriesReady ||
+      historyError ||
+      embeddingSyncAttemptedForUserRef.current === authUserId
+    ) {
+      return;
+    }
+
+    embeddingSyncAttemptedForUserRef.current = authUserId;
+    void synchronizeAllDiaryEmbeddings();
+  }, [
+    authUserId,
+    entriesReady,
+    historyError,
+    synchronizeAllDiaryEmbeddings,
+  ]);
 
   useEffect(() => {
     if (!authReady || authUserId || !historyHydratedRef.current) return;
@@ -999,8 +1071,8 @@ export default function SoriTaraeApp() {
     }
   };
 
-  const saveCurrent = useCallback(async () => {
-    if (!currentDiary || isSavingDiary) return false;
+  const saveCurrent = useCallback(async (): Promise<SaveDiaryResult> => {
+    if (!currentDiary || isSavingDiary) return "failed";
 
     if (authUserId && supabase) {
       setIsSavingDiary(true);
@@ -1017,7 +1089,7 @@ export default function SoriTaraeApp() {
 
       if (error || !data) {
         showToast("클라우드에 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
-        return false;
+        return "failed";
       }
 
       const savedEntry = diaryRowToEntry(data as DiaryRow);
@@ -1026,31 +1098,36 @@ export default function SoriTaraeApp() {
         savedEntry,
         ...previous.filter((entry) => entry.id !== savedEntry.id),
       ]);
-      return true;
+      const embeddingReady = await requestDiaryEmbedding(savedEntry.id);
+      setEmbeddingSyncState(embeddingReady ? "ready" : "error");
+      return embeddingReady ? "saved" : "saved-without-embedding";
     }
 
     setEntries((previous) => [
       currentDiary,
       ...previous.filter((entry) => entry.id !== currentDiary.id),
     ]);
-    return true;
+    return "saved";
   }, [
     authUserId,
     currentDiary,
     isSavingDiary,
+    requestDiaryEmbedding,
     showToast,
     supabase,
   ]);
 
   const openExport = async () => {
     if (!currentDiary) return;
-    const saved = await saveCurrent();
-    if (!saved) return;
+    const saveResult = await saveCurrent();
+    if (saveResult === "failed") return;
     setExportOpen(true);
     showToast(
-      authUserId
-        ? "내 클라우드 기록에 저장했어요."
-        : "이 기기의 기록에 저장했어요.",
+      saveResult === "saved-without-embedding"
+        ? "일기는 저장됐지만 검색 준비는 나중에 다시 시도해 주세요."
+        : authUserId
+          ? "내 클라우드 기록에 저장했어요."
+          : "이 기기의 기록에 저장했어요.",
     );
   };
 
@@ -1177,6 +1254,7 @@ export default function SoriTaraeApp() {
     setEntries(refreshedEntries);
     setLocalEntriesToMigrate([]);
     setIsMigratingHistory(false);
+    void synchronizeAllDiaryEmbeddings();
     showToast(`로컬 기록 ${migratedCount}개를 클라우드로 가져왔어요.`);
   };
 
@@ -1815,6 +1893,42 @@ export default function SoriTaraeApp() {
             className={`status-dot ${connectionReady ? "is-ready" : ""}`}
             aria-hidden="true"
           />
+        </article>
+
+        <article className="settings-card">
+          <span className="settings-icon">
+            <Sparkles size={22} />
+          </span>
+          <div>
+            <span className="settings-label">내 일기 검색 준비</span>
+            <strong>
+              {!authUserId
+                ? "로그인 후 사용 가능"
+                : embeddingSyncState === "syncing"
+                  ? "검색 준비 중"
+                  : embeddingSyncState === "ready"
+                    ? "검색 준비 완료"
+                    : embeddingSyncState === "error"
+                      ? "다시 시도 필요"
+                      : "준비 대기"}
+            </strong>
+            <p>
+              로그인한 계정의 일기를 의미 기반으로 찾을 수 있도록 768차원
+              검색 벡터를 준비해요.
+            </p>
+            {authUserId && embeddingSyncState !== "syncing" && (
+              <button
+                type="button"
+                className="secondary-button compact-button"
+                onClick={() => void synchronizeAllDiaryEmbeddings()}
+              >
+                <RefreshCw size={17} />
+                {embeddingSyncState === "ready"
+                  ? "상태 다시 확인"
+                  : "검색 준비 다시 시도"}
+              </button>
+            )}
+          </div>
         </article>
 
         <article className="settings-card">
