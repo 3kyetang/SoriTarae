@@ -7,7 +7,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { getAuthErrorMessage } from "@/lib/supabase/auth-errors";
 import {
-  createClient,
+  createPasswordRecoveryClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/client";
 
@@ -15,7 +15,8 @@ export default function UpdatePasswordPage() {
   const router = useRouter();
   const supabaseConfigured = isSupabaseConfigured();
   const supabase = useMemo(
-    () => (supabaseConfigured ? createClient() : null),
+    () =>
+      supabaseConfigured ? createPasswordRecoveryClient() : null,
     [supabaseConfigured],
   );
   const [password, setPassword] = useState("");
@@ -43,8 +44,14 @@ export default function UpdatePasswordPage() {
       if (hasSession) {
         setErrorMessage("");
       } else {
+        const urlParameters = new URLSearchParams(
+          window.location.hash.slice(1),
+        );
+        const providerError = urlParameters.get("error_description");
         setErrorMessage(
-          "이메일 확인 링크가 만료되었거나 올바르지 않습니다. 다시 시도해 주세요.",
+          providerError
+            ? providerError
+            : "이메일 확인 링크가 만료되었거나 올바르지 않습니다. 다시 시도해 주세요.",
         );
       }
     };
@@ -96,7 +103,7 @@ export default function UpdatePasswordPage() {
       return;
     }
 
-    router.replace("/");
+    router.replace("/auth/login?password=updated");
     router.refresh();
   }
 
