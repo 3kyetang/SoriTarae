@@ -33,6 +33,28 @@ test("implements the complete email and password auth flow", () => {
   assert.match(home, /auth\.signOut\(\)/);
 });
 
+test("keeps password recovery token parameters separate from the redirect URL", () => {
+  assert.match(
+    forgotPassword,
+    /redirectTo: `\$\{window\.location\.origin\}\/auth\/confirm`,/,
+  );
+  assert.doesNotMatch(forgotPassword, /auth\/confirm\?next=/);
+});
+
+test("keeps the saving state active until diary embedding finishes", () => {
+  const embeddingRequest = home.indexOf(
+    "const embeddingReady = await requestDiaryEmbedding(savedEntry.id)",
+  );
+  const savingFinished = home.indexOf(
+    "setIsSavingDiary(false)",
+    embeddingRequest,
+  );
+
+  assert.ok(embeddingRequest >= 0);
+  assert.ok(savingFinished > embeddingRequest);
+  assert.match(home.slice(embeddingRequest, savingFinished), /finally/);
+});
+
 test("verifies email token hashes on the server without open redirects", () => {
   assert.match(confirm, /auth\.verifyOtp/);
   assert.match(confirm, /token_hash: tokenHash/);

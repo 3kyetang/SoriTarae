@@ -1213,31 +1213,34 @@ export default function SoriTaraeApp() {
 
     if (authUserId && supabase) {
       setIsSavingDiary(true);
-      const { data, error } = await supabase
-        .from("diaries")
-        .upsert(diaryEntryToRow(currentDiary, authUserId), {
-          onConflict: "id",
-        })
-        .select(
-          DIARY_SELECT_FIELDS,
-        )
-        .single();
-      setIsSavingDiary(false);
+      try {
+        const { data, error } = await supabase
+          .from("diaries")
+          .upsert(diaryEntryToRow(currentDiary, authUserId), {
+            onConflict: "id",
+          })
+          .select(
+            DIARY_SELECT_FIELDS,
+          )
+          .single();
 
-      if (error || !data) {
-        showToast("클라우드에 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
-        return "failed";
+        if (error || !data) {
+          showToast("클라우드에 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
+          return "failed";
+        }
+
+        const savedEntry = diaryRowToEntry(data as DiaryRow);
+        setCurrentDiary(savedEntry);
+        setEntries((previous) => [
+          savedEntry,
+          ...previous.filter((entry) => entry.id !== savedEntry.id),
+        ]);
+        const embeddingReady = await requestDiaryEmbedding(savedEntry.id);
+        setEmbeddingSyncState(embeddingReady ? "ready" : "error");
+        return embeddingReady ? "saved" : "saved-without-embedding";
+      } finally {
+        setIsSavingDiary(false);
       }
-
-      const savedEntry = diaryRowToEntry(data as DiaryRow);
-      setCurrentDiary(savedEntry);
-      setEntries((previous) => [
-        savedEntry,
-        ...previous.filter((entry) => entry.id !== savedEntry.id),
-      ]);
-      const embeddingReady = await requestDiaryEmbedding(savedEntry.id);
-      setEmbeddingSyncState(embeddingReady ? "ready" : "error");
-      return embeddingReady ? "saved" : "saved-without-embedding";
     }
 
     setEntries((previous) => [
