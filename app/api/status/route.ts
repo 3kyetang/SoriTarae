@@ -1,7 +1,7 @@
+import { GEMINI_MODEL } from "@/lib/gemini/config";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const GEMINI_MODEL = "gemini-3.6-flash";
 
 export async function GET() {
   return Response.json(

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 
-const title = "VoiceLog | 목소리로 남기는 나의 하루";
+const title = "SoriTarae | 목소리로 엮는 나의 하루";
 const description =
   "편하게 말한 오늘의 이야기를 Gemini AI가 자연스러운 한국어 일기로 정리해 주는 음성 일기 서비스입니다.";
 
@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
-    applicationName: "VoiceLog",
+    applicationName: "SoriTarae",
     metadataBase: new URL(origin),
     icons: {
       icon: "/favicon.svg",
@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       locale: "ko_KR",
       url: origin,
-      siteName: "VoiceLog",
+      siteName: "SoriTarae",
       title,
       description,
     },

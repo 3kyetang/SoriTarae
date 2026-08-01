@@ -1,0 +1,10 @@
+.env
+.env.*
+.venv
+__pycache__
+*.py[cod]
+.cache
+.git
+.gitignore
+README.md
+verify_model.py

@@ -12,6 +12,9 @@ import {
   Headphones,
   History,
   LockKeyhole,
+  LogIn,
+  LogOut,
+  MessageCircle,
   Mic,
   Pencil,
   Plus,
@@ -19,6 +22,7 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  Send,
   Settings2,
   Share2,
   ShieldCheck,
@@ -27,6 +31,7 @@ import {
   Trash2,
   Undo2,
   Upload,
+  UserRound,
   VolumeX,
   Wifi,
   WifiOff,
@@ -34,6 +39,7 @@ import {
 } from "lucide-react";
 import {
   ChangeEvent,
+  FormEvent,
   ReactNode,
   useCallback,
   useEffect,
@@ -42,7 +48,18 @@ import {
   useState,
 } from "react";
 
-type DiaryStyle = "basic" | "focus";
+import {
+  createClient as createSupabaseClient,
+  isSupabaseConfigured,
+} from "@/lib/supabase/client";
+import {
+  DiaryEntry,
+  DiaryRow,
+  DiaryStyle,
+  diaryEntryToRow,
+  diaryRowToEntry,
+} from "@/lib/diaries";
+
 type Screen =
   | "idle"
   | "recording"
@@ -50,17 +67,26 @@ type Screen =
   | "result"
   | "editing"
   | "error";
-type Tab = "record" | "history" | "settings";
+type Tab = "record" | "history" | "ask" | "settings";
+type GeneratedDiaryStyle = Exclude<DiaryStyle, "manual">;
+type EmbeddingSyncState = "idle" | "syncing" | "ready" | "error";
+type SaveDiaryResult = "failed" | "saved" | "saved-without-embedding";
+type RagRequestState = "idle" | "loading" | "success" | "error";
 
-type DiaryEntry = {
-  id: string;
-  createdAt: string;
+type RagSource = {
+  sourceNumber: number;
+  diaryId: string;
   title: string;
-  body: string;
-  mood: string;
-  keywords: string[];
-  style: DiaryStyle;
-  transcriptSummary: string;
+  createdAt: string;
+  similarity: number | null;
+  retrievalMethod: "semantic" | "recent" | "both";
+};
+
+type RagAnswer = {
+  answer: string;
+  grounded: boolean;
+  sources: RagSource[];
+  model: string | null;
 };
 
 type AppError = {
@@ -71,7 +97,7 @@ type AppError = {
 };
 
 const STYLE_OPTIONS: Array<{
-  value: DiaryStyle;
+  value: GeneratedDiaryStyle;
   label: string;
   short: string;
   description: string;
@@ -89,6 +115,65 @@ const STYLE_OPTIONS: Array<{
     description: "꼭 기억하고 싶은 장면을 중심으로 정리해요.",
   },
 ];
+
+const MANUAL_STYLE_OPTION = {
+  value: "manual" as const,
+  label: "직접 작성",
+  short: "내가 직접 쓴 일기",
+  description: "AI의 편집 없이 작성한 내용을 그대로 보관해요.",
+};
+
+function getStyleOption(style: DiaryStyle) {
+  if (style === "manual") return MANUAL_STYLE_OPTION;
+  return (
+    STYLE_OPTIONS.find((option) => option.value === style) ?? STYLE_OPTIONS[0]
+  );
+}
+
+const RAG_QUESTION_SUGGESTIONS = [
+  "최근에 했던 일이 뭐야?",
+  "요즘 나는 어떤 감정을 자주 느꼈어?",
+  "힘들었던 순간에는 무엇이 도움이 됐어?",
+] as const;
+
+function isRagSource(value: unknown): value is RagSource {
+  if (typeof value !== "object" || value === null) return false;
+  const source = value as Partial<RagSource>;
+  return (
+    typeof source.sourceNumber === "number" &&
+    typeof source.diaryId === "string" &&
+    typeof source.title === "string" &&
+    typeof source.createdAt === "string" &&
+    (typeof source.similarity === "number" || source.similarity === null) &&
+    (source.retrievalMethod === "semantic" ||
+      source.retrievalMethod === "recent" ||
+      source.retrievalMethod === "both")
+  );
+}
+
+function isRagAnswer(value: unknown): value is RagAnswer {
+  if (typeof value !== "object" || value === null) return false;
+  const answer = value as Partial<RagAnswer>;
+  return (
+    typeof answer.answer === "string" &&
+    typeof answer.grounded === "boolean" &&
+    Array.isArray(answer.sources) &&
+    answer.sources.every(isRagSource) &&
+    (typeof answer.model === "string" || answer.model === null)
+  );
+}
+
+function ragApiErrorMessage(value: unknown) {
+  if (typeof value !== "object" || value === null) return null;
+  const response = value as {
+    error?: {
+      message?: unknown;
+    };
+  };
+  return typeof response.error?.message === "string"
+    ? response.error.message
+    : null;
+}
 
 const SUPPORTED_MIME_TYPES = new Set([
   "audio/wav",
@@ -119,8 +204,72 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 };
 
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
-const HISTORY_KEY = "voicelog.entries.v1";
-const EDIT_DRAFT_KEY = "voicelog.edit-draft.v1";
+const HISTORY_KEY = "soritarae.entries.v1";
+const LEGACY_HISTORY_KEY = "voicelog.entries.v1";
+const EDIT_DRAFT_KEY = "soritarae.edit-draft.v1";
+const DIARY_SELECT_FIELDS =
+  "id,user_id,title,body,mood,keywords,style,transcript_summary,created_at,updated_at";
+
+function parseLocalDiaryEntries(raw: string | null): DiaryEntry[] {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.flatMap((value) => {
+      if (
+        typeof value !== "object" ||
+        value === null ||
+        !("id" in value) ||
+        !("createdAt" in value) ||
+        !("title" in value) ||
+        !("body" in value) ||
+        typeof value.id !== "string" ||
+        typeof value.createdAt !== "string" ||
+        typeof value.title !== "string" ||
+        typeof value.body !== "string"
+      ) {
+        return [];
+      }
+
+      const entry = value as Partial<DiaryEntry>;
+      const entryStyle: DiaryStyle =
+        entry.style === "basic" || entry.style === "manual"
+          ? entry.style
+          : "focus";
+
+      return [
+        {
+          id: value.id,
+          createdAt: value.createdAt,
+          title: value.title,
+          body: value.body,
+          mood: typeof entry.mood === "string" ? entry.mood : "",
+          keywords: Array.isArray(entry.keywords)
+            ? entry.keywords.filter(
+                (keyword): keyword is string => typeof keyword === "string",
+              )
+            : [],
+          style: entryStyle,
+          transcriptSummary:
+            typeof entry.transcriptSummary === "string"
+              ? entry.transcriptSummary
+              : "",
+        },
+      ];
+    });
+  } catch {
+    return [];
+  }
+}
+
+function readLocalDiaryEntries() {
+  return parseLocalDiaryEntries(
+    window.localStorage.getItem(HISTORY_KEY) ??
+      window.localStorage.getItem(LEGACY_HISTORY_KEY),
+  );
+}
 
 function LogoMark() {
   return (
@@ -275,10 +424,11 @@ const DEFAULT_LEVELS = [
   0.58, 0.33, 0.46, 0.25, 0.37, 0.2,
 ];
 
-export default function VoiceLogApp() {
+export default function SoriTaraeApp() {
+  const supabaseConfigured = isSupabaseConfigured();
   const [tab, setTab] = useState<Tab>("record");
   const [screen, setScreen] = useState<Screen>("idle");
-  const [style, setStyle] = useState<DiaryStyle>("focus");
+  const [style, setStyle] = useState<GeneratedDiaryStyle>("basic");
   const [waveLevels, setWaveLevels] = useState(DEFAULT_LEVELS);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isMicStarting, setIsMicStarting] = useState(false);
@@ -296,6 +446,35 @@ export default function VoiceLogApp() {
   const [exportOpen, setExportOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [connectionReady, setConnectionReady] = useState<boolean | null>(null);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(!supabaseConfigured);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [entriesReady, setEntriesReady] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [isSavingDiary, setIsSavingDiary] = useState(false);
+  const [localEntriesToMigrate, setLocalEntriesToMigrate] = useState<
+    DiaryEntry[]
+  >([]);
+  const [isMigratingHistory, setIsMigratingHistory] = useState(false);
+  const [migrationError, setMigrationError] = useState("");
+  const [migrationNoticeDismissed, setMigrationNoticeDismissed] =
+    useState(false);
+  const [embeddingSyncState, setEmbeddingSyncState] =
+    useState<EmbeddingSyncState>("idle");
+  const [ragQuestion, setRagQuestion] = useState("");
+  const [ragRequestState, setRagRequestState] =
+    useState<RagRequestState>("idle");
+  const [ragAnswer, setRagAnswer] = useState<RagAnswer | null>(null);
+  const [ragError, setRagError] = useState("");
+  const [deletingEntryIds, setDeletingEntryIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const supabase = useMemo(
+    () => (supabaseConfigured ? createSupabaseClient() : null),
+    [supabaseConfigured],
+  );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
@@ -312,6 +491,8 @@ export default function VoiceLogApp() {
   const startedAtRef = useRef(0);
   const requestAbortRef = useRef<AbortController | null>(null);
   const historyHydratedRef = useRef(false);
+  const embeddingSyncAttemptedForUserRef = useRef<string | null>(null);
+  const ragRequestAbortRef = useRef<AbortController | null>(null);
 
   const selectedStyle = useMemo(
     () => STYLE_OPTIONS.find((option) => option.value === style)!,
@@ -330,28 +511,162 @@ export default function VoiceLogApp() {
     window.setTimeout(() => setToast(""), 2800);
   }, []);
 
-  useEffect(() => {
-    let savedEntries: DiaryEntry[] | null = null;
+  const requestDiaryEmbedding = useCallback(async (diaryId: string) => {
     try {
-      const saved = window.localStorage.getItem(HISTORY_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as unknown;
-        if (Array.isArray(parsed)) {
-          savedEntries = (parsed as DiaryEntry[]).map((entry) => ({
-            ...entry,
-            style: entry.style === "basic" ? "basic" : "focus",
-          }));
+      const response = await fetch(
+        `/api/diaries/${encodeURIComponent(diaryId)}/embedding`,
+        {
+          method: "POST",
+          cache: "no-store",
+        },
+      );
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const synchronizeAllDiaryEmbeddings = useCallback(async () => {
+    if (!authUserId) return false;
+
+    setEmbeddingSyncState("syncing");
+    try {
+      for (let requestIndex = 0; requestIndex < 4; requestIndex += 1) {
+        const response = await fetch("/api/diaries/embeddings", {
+          method: "POST",
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          setEmbeddingSyncState("error");
+          return false;
+        }
+
+        const result = (await response.json()) as { remaining?: number };
+        if (!result.remaining) {
+          setEmbeddingSyncState("ready");
+          return true;
         }
       }
     } catch {
-      // A corrupt or unavailable local store should never block the recorder.
+      setEmbeddingSyncState("error");
+      return false;
     }
 
-    const hydrationTimer = window.setTimeout(() => {
-      historyHydratedRef.current = true;
-      if (savedEntries) setEntries(savedEntries);
-    }, 0);
+    setEmbeddingSyncState("error");
+    return false;
+  }, [authUserId]);
 
+  const askDiaryQuestion = useCallback(async () => {
+    const question = ragQuestion.trim();
+    if (!authUserId) {
+      setRagRequestState("error");
+      setRagError("내 일기에 질문하려면 먼저 로그인해 주세요.");
+      return;
+    }
+    if (question.length < 2) {
+      setRagRequestState("error");
+      setRagError("질문을 두 글자 이상 입력해 주세요.");
+      return;
+    }
+
+    ragRequestAbortRef.current?.abort();
+    const controller = new AbortController();
+    ragRequestAbortRef.current = controller;
+    setRagRequestState("loading");
+    setRagAnswer(null);
+    setRagError("");
+
+    try {
+      const response = await fetch("/api/rag/answer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question }),
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      const payload: unknown = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          ragApiErrorMessage(payload) ??
+            "답변을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        );
+      }
+      if (!isRagAnswer(payload)) {
+        throw new Error("답변 형식을 확인할 수 없습니다. 다시 시도해 주세요.");
+      }
+
+      setRagAnswer(payload);
+      setRagRequestState("success");
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setRagRequestState("error");
+      setRagError(
+        error instanceof Error
+          ? error.message
+          : "답변을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      );
+    } finally {
+      if (ragRequestAbortRef.current === controller) {
+        ragRequestAbortRef.current = null;
+      }
+    }
+  }, [authUserId, ragQuestion]);
+
+  const handleSignOut = useCallback(async () => {
+    if (!supabase || isSigningOut) return;
+
+    setIsSigningOut(true);
+    const { error } = await supabase.auth.signOut();
+    setIsSigningOut(false);
+
+    if (error) {
+      showToast("로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+
+    setAuthEmail(null);
+    setAuthUserId(null);
+    window.location.assign("/");
+  }, [isSigningOut, showToast, supabase]);
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    let isMounted = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!isMounted) return;
+      setAuthEmail(data.user?.email ?? null);
+      setAuthUserId(data.user?.id ?? null);
+      setAuthReady(true);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setAuthEmail(session?.user.email ?? null);
+      setAuthUserId(session?.user.id ?? null);
+      setAuthReady(true);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  useEffect(
+    () => () => {
+      ragRequestAbortRef.current?.abort();
+    },
+    [],
+  );
+
+  useEffect(() => {
     fetch("/api/status")
       .then((response) => response.json())
       .then((data: { configured?: boolean }) =>
@@ -359,17 +674,84 @@ export default function VoiceLogApp() {
       )
       .catch(() => setConnectionReady(false));
 
-    return () => window.clearTimeout(hydrationTimer);
   }, []);
 
   useEffect(() => {
-    if (!historyHydratedRef.current) return;
+    if (!authReady) return;
+
+    let isActive = true;
+    const hydrationTimer = window.setTimeout(() => {
+      if (!isActive) return;
+      historyHydratedRef.current = false;
+      setEntriesReady(false);
+      setHistoryError("");
+
+      if (authUserId && supabase) {
+        setLocalEntriesToMigrate(readLocalDiaryEntries());
+        supabase
+          .from("diaries")
+          .select(DIARY_SELECT_FIELDS)
+          .order("created_at", { ascending: false })
+          .then(({ data, error }) => {
+            if (!isActive) return;
+            if (error) {
+              setEntries([]);
+              setHistoryError(
+                "클라우드 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+              );
+            } else {
+              setEntries(((data ?? []) as DiaryRow[]).map(diaryRowToEntry));
+            }
+            setEntriesReady(true);
+          });
+        return;
+      }
+
+      const savedEntries = readLocalDiaryEntries();
+
+      historyHydratedRef.current = true;
+      setLocalEntriesToMigrate([]);
+      setEntries(savedEntries);
+      setEntriesReady(true);
+    }, 0);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(hydrationTimer);
+    };
+  }, [authReady, authUserId, supabase]);
+
+  useEffect(() => {
+    if (!authUserId) {
+      embeddingSyncAttemptedForUserRef.current = null;
+      return;
+    }
+    if (
+      !entriesReady ||
+      historyError ||
+      embeddingSyncAttemptedForUserRef.current === authUserId
+    ) {
+      return;
+    }
+
+    embeddingSyncAttemptedForUserRef.current = authUserId;
+    void synchronizeAllDiaryEmbeddings();
+  }, [
+    authUserId,
+    entriesReady,
+    historyError,
+    synchronizeAllDiaryEmbeddings,
+  ]);
+
+  useEffect(() => {
+    if (!authReady || authUserId || !historyHydratedRef.current) return;
     try {
       window.localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+      window.localStorage.removeItem(LEGACY_HISTORY_KEY);
     } catch {
       // Local history is best-effort device storage.
     }
-  }, [entries]);
+  }, [authReady, authUserId, entries]);
 
   useEffect(() => {
     if (screen !== "editing") return;
@@ -446,7 +828,7 @@ export default function VoiceLogApp() {
   };
 
   const generateDiary = useCallback(
-    async (blob: Blob, selected: DiaryStyle) => {
+    async (blob: Blob, selected: GeneratedDiaryStyle) => {
       setAudioBlob(blob);
       setAppError(null);
       setProcessingProgress(8);
@@ -456,7 +838,7 @@ export default function VoiceLogApp() {
       requestAbortRef.current = controller;
 
       const filename =
-        blob instanceof File && blob.name ? blob.name : "voicelog-recording.wav";
+        blob instanceof File && blob.name ? blob.name : "soritarae-recording.wav";
       const file =
         blob instanceof File
           ? blob
@@ -640,7 +1022,7 @@ export default function VoiceLogApp() {
           ? "마이크 권한이 필요해요"
           : "녹음을 시작하지 못했어요",
         message: permissionDenied
-          ? "브라우저에서 VoiceLog의 마이크 사용을 허용해 주세요."
+          ? "브라우저에서 SoriTarae의 마이크 사용을 허용해 주세요."
           : "현재 기기의 녹음 장치를 연결하지 못했어요.",
         tip: "권한을 허용한 뒤 다시 시도하거나, 오디오 파일 업로드를 이용해 주세요.",
         kind: "permission",
@@ -814,7 +1196,7 @@ export default function VoiceLogApp() {
           body: editBody.trim(),
           mood: "차분함",
           keywords: [],
-          style,
+          style: "manual",
           transcriptSummary: "",
         };
     setCurrentDiary(next);
@@ -826,19 +1208,64 @@ export default function VoiceLogApp() {
     }
   };
 
-  const saveCurrent = useCallback(() => {
-    if (!currentDiary) return;
+  const saveCurrent = useCallback(async (): Promise<SaveDiaryResult> => {
+    if (!currentDiary || isSavingDiary) return "failed";
+
+    if (authUserId && supabase) {
+      setIsSavingDiary(true);
+      const { data, error } = await supabase
+        .from("diaries")
+        .upsert(diaryEntryToRow(currentDiary, authUserId), {
+          onConflict: "id",
+        })
+        .select(
+          DIARY_SELECT_FIELDS,
+        )
+        .single();
+      setIsSavingDiary(false);
+
+      if (error || !data) {
+        showToast("클라우드에 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        return "failed";
+      }
+
+      const savedEntry = diaryRowToEntry(data as DiaryRow);
+      setCurrentDiary(savedEntry);
+      setEntries((previous) => [
+        savedEntry,
+        ...previous.filter((entry) => entry.id !== savedEntry.id),
+      ]);
+      const embeddingReady = await requestDiaryEmbedding(savedEntry.id);
+      setEmbeddingSyncState(embeddingReady ? "ready" : "error");
+      return embeddingReady ? "saved" : "saved-without-embedding";
+    }
+
     setEntries((previous) => [
       currentDiary,
       ...previous.filter((entry) => entry.id !== currentDiary.id),
     ]);
-  }, [currentDiary]);
+    return "saved";
+  }, [
+    authUserId,
+    currentDiary,
+    isSavingDiary,
+    requestDiaryEmbedding,
+    showToast,
+    supabase,
+  ]);
 
-  const openExport = () => {
+  const openExport = async () => {
     if (!currentDiary) return;
-    saveCurrent();
+    const saveResult = await saveCurrent();
+    if (saveResult === "failed") return;
     setExportOpen(true);
-    showToast("이 기기의 기록에 저장했어요.");
+    showToast(
+      saveResult === "saved-without-embedding"
+        ? "일기는 저장됐지만 검색 준비는 나중에 다시 시도해 주세요."
+        : authUserId
+          ? "내 클라우드 기록에 저장했어요."
+          : "이 기기의 기록에 저장했어요.",
+    );
   };
 
   const diaryAsText = useCallback(() => {
@@ -846,7 +1273,7 @@ export default function VoiceLogApp() {
     const keywords = currentDiary.keywords.length
       ? `\n#${currentDiary.keywords.join(" #")}`
       : "";
-    return `${currentDiary.title}\n${formatFullDate(currentDiary.createdAt)}\n\n${currentDiary.body}${keywords}\n\n— VoiceLog`;
+    return `${currentDiary.title}\n${formatFullDate(currentDiary.createdAt)}\n\n${currentDiary.body}${keywords}\n\n— SoriTarae`;
   }, [currentDiary]);
 
   const downloadDiary = () => {
@@ -857,7 +1284,7 @@ export default function VoiceLogApp() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `VoiceLog_${currentDiary.createdAt.slice(0, 10)}.txt`;
+    anchor.download = `SoriTarae_${currentDiary.createdAt.slice(0, 10)}.txt`;
     anchor.click();
     URL.revokeObjectURL(url);
     showToast("텍스트 파일로 내보냈어요.");
@@ -892,20 +1319,146 @@ export default function VoiceLogApp() {
 
   const openHistoryEntry = (entry: DiaryEntry) => {
     setCurrentDiary(entry);
-    setStyle(entry.style);
+    if (entry.style !== "manual") setStyle(entry.style);
     setAudioBlob(null);
     setTab("record");
     setScreen("result");
   };
 
-  const deleteEntry = (id: string) => {
+  const openRagSource = (source: RagSource) => {
+    const entry = entries.find((candidate) => candidate.id === source.diaryId);
+    if (entry) {
+      openHistoryEntry(entry);
+      return;
+    }
+
+    setTab("history");
+    showToast("참고한 일기를 기록 목록에서 확인해 주세요.");
+  };
+
+  const submitRagQuestion = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void askDiaryQuestion();
+  };
+
+  const migrateLocalHistory = async () => {
+    if (
+      !authUserId ||
+      !supabase ||
+      !localEntriesToMigrate.length ||
+      isMigratingHistory
+    ) {
+      return;
+    }
+
+    setIsMigratingHistory(true);
+    setMigrationError("");
+
+    const rows = localEntriesToMigrate.map((entry) =>
+      diaryEntryToRow(entry, authUserId),
+    );
+    const { error: uploadError } = await supabase
+      .from("diaries")
+      .upsert(rows, {
+        onConflict: "id",
+        ignoreDuplicates: true,
+      });
+
+    if (uploadError) {
+      setIsMigratingHistory(false);
+      setMigrationError(
+        "로컬 기록을 업로드하지 못했어요. 원본은 이 기기에 그대로 남아 있어요.",
+      );
+      return;
+    }
+
+    const { data, error: refreshError } = await supabase
+      .from("diaries")
+      .select(DIARY_SELECT_FIELDS)
+      .order("created_at", { ascending: false });
+
+    const refreshedEntries = ((data ?? []) as DiaryRow[]).map(diaryRowToEntry);
+    const refreshedIds = new Set(refreshedEntries.map((entry) => entry.id));
+    const allMigrated =
+      !refreshError &&
+      localEntriesToMigrate.every((entry) => refreshedIds.has(entry.id));
+
+    if (!allMigrated) {
+      setIsMigratingHistory(false);
+      setMigrationError(
+        "일부 기록을 확인하지 못해 로컬 원본을 유지했어요. 다시 시도해 주세요.",
+      );
+      return;
+    }
+
+    try {
+      window.localStorage.removeItem(HISTORY_KEY);
+      window.localStorage.removeItem(LEGACY_HISTORY_KEY);
+    } catch {
+      setIsMigratingHistory(false);
+      setEntries(refreshedEntries);
+      setMigrationError(
+        "클라우드 저장은 완료됐지만 이 기기의 사본을 정리하지 못했어요.",
+      );
+      return;
+    }
+
+    const migratedCount = localEntriesToMigrate.length;
+    setEntries(refreshedEntries);
+    setLocalEntriesToMigrate([]);
+    setIsMigratingHistory(false);
+    void synchronizeAllDiaryEmbeddings();
+    showToast(`로컬 기록 ${migratedCount}개를 클라우드로 가져왔어요.`);
+  };
+
+  const deleteEntry = async (id: string) => {
+    if (deletingEntryIds.has(id)) return;
+
+    if (authUserId && supabase) {
+      setDeletingEntryIds((previous) => new Set(previous).add(id));
+      const { error } = await supabase
+        .from("diaries")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", authUserId);
+      setDeletingEntryIds((previous) => {
+        const next = new Set(previous);
+        next.delete(id);
+        return next;
+      });
+
+      if (error) {
+        showToast("클라우드 기록을 삭제하지 못했어요.");
+        return;
+      }
+    }
+
     setEntries((previous) => previous.filter((entry) => entry.id !== id));
     showToast("기록을 삭제했어요.");
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
     if (!entries.length) return;
-    if (!window.confirm("이 기기에 저장된 모든 일기를 삭제할까요?")) return;
+    const storageLabel = authUserId ? "클라우드" : "이 기기";
+    if (
+      !window.confirm(
+        `${storageLabel}에 저장된 모든 일기를 삭제할까요? 이 작업은 되돌릴 수 없어요.`,
+      )
+    ) {
+      return;
+    }
+
+    if (authUserId && supabase) {
+      const { error } = await supabase
+        .from("diaries")
+        .delete()
+        .eq("user_id", authUserId);
+      if (error) {
+        showToast("클라우드 기록을 삭제하지 못했어요.");
+        return;
+      }
+    }
+
     setEntries([]);
     showToast("저장된 기록을 모두 삭제했어요.");
   };
@@ -919,7 +1472,7 @@ export default function VoiceLogApp() {
         </span>
         <h1 id="record-title">오늘 있었던 일을 들려주세요</h1>
         <p className="lead">
-          완벽하게 말하지 않아도 괜찮아요. 편하게 이야기하면 VoiceLog가
+          완벽하게 말하지 않아도 괜찮아요. 편하게 이야기하면 SoriTarae가
           하루의 흐름을 정돈해 일기로 바꿔드려요.
         </p>
 
@@ -1097,9 +1650,7 @@ export default function VoiceLogApp() {
 
   const renderResult = () => {
     if (!currentDiary) return renderIdle();
-    const resultStyle =
-      STYLE_OPTIONS.find((option) => option.value === currentDiary.style) ??
-      STYLE_OPTIONS[0];
+    const resultStyle = getStyleOption(currentDiary.style);
     return (
       <section className="result-screen" aria-labelledby="result-title">
         <div className="result-hero">
@@ -1162,9 +1713,14 @@ export default function VoiceLogApp() {
               다시 생성
             </button>
           )}
-          <button type="button" className="primary-button" onClick={openExport}>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={openExport}
+            disabled={isSavingDiary}
+          >
             <Save size={19} />
-            저장 · 내보내기
+            {isSavingDiary ? "저장 중..." : "저장 · 내보내기"}
           </button>
         </div>
       </section>
@@ -1230,7 +1786,7 @@ export default function VoiceLogApp() {
       </label>
       <div className="autosave-note">
         <CheckCircle2 size={16} />
-        이 기기에 초안이 자동 저장돼요.
+        편집 중인 초안은 이 기기에 자동 저장돼요.
       </div>
       <div className="editor-actions">
         <button type="button" className="secondary-button" onClick={restoreDraft}>
@@ -1313,7 +1869,11 @@ export default function VoiceLogApp() {
         <div>
           <span className="eyebrow">나의 기록</span>
           <h1 id="history-title">다시 펼쳐보는 하루</h1>
-          <p>저장한 일기는 이 기기에만 보관돼요.</p>
+          <p>
+            {authUserId
+              ? "로그인한 계정의 클라우드 기록이에요."
+              : "로그인하지 않은 기록은 이 기기에만 보관돼요."}
+          </p>
         </div>
         <button
           type="button"
@@ -1325,7 +1885,75 @@ export default function VoiceLogApp() {
         </button>
       </div>
 
-      {entries.length === 0 ? (
+      {authUserId &&
+        entriesReady &&
+        !historyError &&
+        localEntriesToMigrate.length > 0 &&
+        !migrationNoticeDismissed && (
+          <aside className="migration-banner" aria-labelledby="migration-title">
+            <span className="migration-icon" aria-hidden="true">
+              <Upload size={22} />
+            </span>
+            <div>
+              <strong id="migration-title">
+                이 기기에 저장된 기록 {localEntriesToMigrate.length}개가 있어요
+              </strong>
+              <p>
+                내 클라우드 기록으로 가져올 수 있어요. 모두 확인되기 전에는
+                로컬 원본을 삭제하지 않아요.
+              </p>
+              {migrationError && (
+                <p className="migration-error" role="alert">
+                  {migrationError}
+                </p>
+              )}
+            </div>
+            <div className="migration-actions">
+              <button
+                type="button"
+                className="primary-button compact-button"
+                onClick={migrateLocalHistory}
+                disabled={isMigratingHistory}
+              >
+                {isMigratingHistory ? "가져오는 중..." : "클라우드로 가져오기"}
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setMigrationNoticeDismissed(true)}
+                disabled={isMigratingHistory}
+              >
+                나중에
+              </button>
+            </div>
+          </aside>
+        )}
+
+      {!entriesReady ? (
+        <div className="empty-state" role="status">
+          <div className="empty-illustration">
+            <RefreshCw size={34} />
+          </div>
+          <h2>기록을 불러오고 있어요</h2>
+          <p>잠시만 기다려 주세요.</p>
+        </div>
+      ) : historyError ? (
+        <div className="empty-state" role="alert">
+          <div className="empty-illustration">
+            <WifiOff size={34} />
+          </div>
+          <h2>기록을 불러오지 못했어요</h2>
+          <p>{historyError}</p>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw size={18} />
+            다시 시도
+          </button>
+        </div>
+      ) : entries.length === 0 ? (
         <div className="empty-state">
           <div className="empty-illustration">
             <BookOpen size={38} />
@@ -1344,9 +1972,7 @@ export default function VoiceLogApp() {
       ) : (
         <div className="history-list">
           {entries.map((entry) => {
-            const option =
-              STYLE_OPTIONS.find((item) => item.value === entry.style) ??
-              STYLE_OPTIONS[0];
+            const option = getStyleOption(entry.style);
             return (
               <article key={entry.id} className="history-card">
                 <button
@@ -1374,6 +2000,7 @@ export default function VoiceLogApp() {
                 <IconButton
                   label={`${entry.title} 삭제`}
                   onClick={() => deleteEntry(entry.id)}
+                  disabled={deletingEntryIds.has(entry.id)}
                 >
                   <Trash2 size={17} />
                 </IconButton>
@@ -1385,13 +2012,203 @@ export default function VoiceLogApp() {
     </section>
   );
 
+  const renderAsk = () => (
+    <section className="ask-screen" aria-labelledby="ask-title">
+      <div className="section-heading ask-heading">
+        <div>
+          <span className="eyebrow">
+            <Sparkles size={15} />
+            나의 기록 돌아보기
+          </span>
+          <h1 id="ask-title">내 일기에 질문해 보세요</h1>
+          <p>
+            저장한 일기에서 관련 기록을 찾아, 그 내용에 근거해 답해드려요.
+          </p>
+        </div>
+      </div>
+
+      {!authReady ? (
+        <div className="ask-gate" role="status">
+          <RefreshCw size={30} />
+          <strong>로그인 상태를 확인하고 있어요</strong>
+        </div>
+      ) : !authUserId ? (
+        <div className="ask-gate">
+          <span className="ask-gate-icon">
+            <LockKeyhole size={30} />
+          </span>
+          <h2>로그인한 기록에서만 질문할 수 있어요</h2>
+          <p>
+            계정별 일기를 안전하게 구분하기 위해 로그인 후 질문 기능을
+            제공해요.
+          </p>
+          <a className="primary-button" href="/auth/login">
+            <LogIn size={18} />
+            로그인하기
+          </a>
+        </div>
+      ) : (
+        <>
+          <form className="question-card" onSubmit={submitRagQuestion}>
+            <label htmlFor="rag-question">궁금한 내용을 적어 주세요</label>
+            <div className="question-field">
+              <textarea
+                id="rag-question"
+                value={ragQuestion}
+                onChange={(event) =>
+                  setRagQuestion(event.target.value.slice(0, 500))
+                }
+                placeholder="예: 최근에 내가 기뻐했던 일은 뭐야?"
+                maxLength={500}
+                disabled={ragRequestState === "loading"}
+              />
+              <span>{ragQuestion.length}/500</span>
+            </div>
+            <div className="question-actions">
+              <div className="question-suggestions" aria-label="추천 질문">
+                {RAG_QUESTION_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setRagQuestion(suggestion)}
+                    disabled={ragRequestState === "loading"}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="submit"
+                className="primary-button ask-submit"
+                disabled={
+                  ragRequestState === "loading" ||
+                  ragQuestion.trim().length < 2
+                }
+              >
+                {ragRequestState === "loading" ? (
+                  <RefreshCw className="is-spinning" size={18} />
+                ) : (
+                  <Send size={18} />
+                )}
+                {ragRequestState === "loading" ? "찾는 중" : "질문하기"}
+              </button>
+            </div>
+          </form>
+
+          {ragRequestState === "idle" && (
+            <div className="ask-empty">
+              <span>
+                <MessageCircle size={30} />
+              </span>
+              <strong>일기 속 기억을 함께 찾아볼게요</strong>
+              <p>
+                사건, 감정, 사람에 대해 묻거나 “최근에 무엇을 했어?”처럼
+                시간에 관한 질문도 할 수 있어요.
+              </p>
+            </div>
+          )}
+
+          {ragRequestState === "loading" && (
+            <div className="ask-loading" role="status" aria-live="polite">
+              <span className="ask-loading-icon">
+                <Sparkles size={25} />
+              </span>
+              <div>
+                <strong>관련 일기를 찾고 있어요</strong>
+                <p>의미와 날짜를 함께 살펴본 뒤 답변을 정리할게요.</p>
+              </div>
+            </div>
+          )}
+
+          {ragRequestState === "error" && (
+            <div className="ask-error" role="alert">
+              <div>
+                <strong>답변을 가져오지 못했어요</strong>
+                <p>{ragError}</p>
+              </div>
+              <button
+                type="button"
+                className="secondary-button compact-button"
+                onClick={() => void askDiaryQuestion()}
+              >
+                <RefreshCw size={17} />
+                다시 시도
+              </button>
+            </div>
+          )}
+
+          {ragRequestState === "success" && ragAnswer && (
+            <article className="rag-answer-card" aria-live="polite">
+              <header className="rag-answer-head">
+                <span className="rag-answer-icon">
+                  <Sparkles size={22} />
+                </span>
+                <div>
+                  <span className="settings-label">SoriTarae의 답변</span>
+                  <strong>
+                    {ragAnswer.grounded
+                      ? "내 일기에서 찾았어요"
+                      : "충분한 기록을 찾지 못했어요"}
+                  </strong>
+                </div>
+              </header>
+              <p className="rag-answer-text">{ragAnswer.answer}</p>
+
+              {ragAnswer.sources.length > 0 && (
+                <div className="rag-sources">
+                  <span className="rag-sources-label">
+                    <BookOpen size={16} />
+                    참고한 일기
+                  </span>
+                  <div className="rag-source-list">
+                    {ragAnswer.sources.map((source) => (
+                      <button
+                        key={`${source.sourceNumber}-${source.diaryId}`}
+                        type="button"
+                        className="rag-source-card"
+                        onClick={() => openRagSource(source)}
+                      >
+                        <span className="rag-source-number">
+                          {source.sourceNumber}
+                        </span>
+                        <span>
+                          <strong>{source.title}</strong>
+                          <small>
+                            {formatFullDate(source.createdAt)}
+                            {" · "}
+                            {source.retrievalMethod === "recent"
+                              ? "최신 기록"
+                              : source.retrievalMethod === "both"
+                                ? "의미·날짜 일치"
+                                : `${Math.round((source.similarity ?? 0) * 100)}% 유사`}
+                          </small>
+                        </span>
+                        <ArrowLeft className="source-arrow" size={17} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="rag-caution">
+                <ShieldCheck size={17} />
+                답변은 선택된 내 일기에만 근거하며, 중요한 내용은 원문도
+                함께 확인해 주세요.
+              </div>
+            </article>
+          )}
+        </>
+      )}
+    </section>
+  );
+
   const renderSettings = () => (
     <section className="settings-screen" aria-labelledby="settings-title">
       <div className="section-heading">
         <div>
           <span className="eyebrow">환경 설정</span>
           <h1 id="settings-title">편안한 기록을 위한 설정</h1>
-          <p>연결 상태와 이 기기에 남는 데이터를 확인할 수 있어요.</p>
+          <p>AI 연결 상태와 일기 저장 위치를 확인할 수 있어요.</p>
         </div>
       </div>
 
@@ -1422,15 +2239,52 @@ export default function VoiceLogApp() {
         </article>
 
         <article className="settings-card">
+          <span className="settings-icon">
+            <Sparkles size={22} />
+          </span>
+          <div>
+            <span className="settings-label">내 일기 검색 준비</span>
+            <strong>
+              {!authUserId
+                ? "로그인 후 사용 가능"
+                : embeddingSyncState === "syncing"
+                  ? "검색 준비 중"
+                  : embeddingSyncState === "ready"
+                    ? "검색 준비 완료"
+                    : embeddingSyncState === "error"
+                      ? "다시 시도 필요"
+                      : "준비 대기"}
+            </strong>
+            <p>
+              로그인한 계정의 일기를 의미 기반으로 찾을 수 있도록 768차원
+              검색 벡터를 준비해요.
+            </p>
+            {authUserId && embeddingSyncState !== "syncing" && (
+              <button
+                type="button"
+                className="secondary-button compact-button"
+                onClick={() => void synchronizeAllDiaryEmbeddings()}
+              >
+                <RefreshCw size={17} />
+                {embeddingSyncState === "ready"
+                  ? "상태 다시 확인"
+                  : "검색 준비 다시 시도"}
+              </button>
+            )}
+          </div>
+        </article>
+
+        <article className="settings-card">
           <span className="settings-icon mint">
             <LockKeyhole size={22} />
           </span>
           <div>
             <span className="settings-label">기록 보관</span>
-            <strong>이 기기에만 저장</strong>
+            <strong>{authUserId ? "내 계정의 클라우드에 저장" : "이 기기에만 저장"}</strong>
             <p>
-              저장한 일기와 편집 중인 초안은 현재 브라우저의 로컬 저장소에
-              보관돼요.
+              {authUserId
+                ? "완성해 저장한 일기는 Supabase에, 편집 중인 초안은 현재 브라우저에 보관돼요."
+                : "저장한 일기와 편집 중인 초안은 현재 브라우저의 로컬 저장소에 보관돼요."}
             </p>
           </div>
         </article>
@@ -1459,7 +2313,7 @@ export default function VoiceLogApp() {
           type="button"
           className="danger-button"
           onClick={clearHistory}
-          disabled={!entries.length}
+          disabled={!entriesReady || !entries.length}
         >
           <Trash2 size={17} />
           전체 삭제
@@ -1484,11 +2338,11 @@ export default function VoiceLogApp() {
           type="button"
           className="brand"
           onClick={() => switchTab("record")}
-          aria-label="VoiceLog 메인"
+          aria-label="SoriTarae 메인"
         >
           <LogoMark />
           <span>
-            <strong>VoiceLog</strong>
+            <strong>SoriTarae</strong>
             <small>목소리로 남기는 나의 하루</small>
           </span>
         </button>
@@ -1512,6 +2366,14 @@ export default function VoiceLogApp() {
           </button>
           <button
             type="button"
+            className={tab === "ask" ? "is-active" : ""}
+            onClick={() => switchTab("ask")}
+          >
+            <MessageCircle size={18} />
+            질문하기
+          </button>
+          <button
+            type="button"
             className={tab === "settings" ? "is-active" : ""}
             onClick={() => switchTab("settings")}
           >
@@ -1520,10 +2382,41 @@ export default function VoiceLogApp() {
           </button>
         </nav>
 
-        <span className="local-badge">
-          <LockKeyhole size={15} />
-          로컬 저장
-        </span>
+        <div className="header-account">
+          <span className="local-badge">
+            <LockKeyhole size={15} />
+            {!authReady
+              ? "저장소 확인 중"
+              : authUserId
+                ? "클라우드 저장"
+                : "로컬 저장"}
+          </span>
+
+          {authReady && authEmail ? (
+            <>
+              <span className="account-email" title={authEmail}>
+                <UserRound size={15} />
+                <span>{authEmail}</span>
+              </span>
+              <button
+                type="button"
+                className="account-button"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+              >
+                <LogOut size={15} />
+                {isSigningOut ? "처리 중" : "로그아웃"}
+              </button>
+            </>
+          ) : authReady ? (
+            <a className="account-button" href="/auth/login">
+              <LogIn size={15} />
+              로그인
+            </a>
+          ) : (
+            <span className="account-loading" aria-label="로그인 상태 확인 중" />
+          )}
+        </div>
       </header>
 
       <main ref={mainRef} tabIndex={-1} className="app-main">
@@ -1531,7 +2424,9 @@ export default function VoiceLogApp() {
           ? renderRecordScreen()
           : tab === "history"
             ? renderHistory()
-            : renderSettings()}
+            : tab === "ask"
+              ? renderAsk()
+              : renderSettings()}
       </main>
 
       <nav className="mobile-nav" aria-label="주요 메뉴">
@@ -1550,6 +2445,14 @@ export default function VoiceLogApp() {
         >
           <History size={21} />
           <span>나의 기록</span>
+        </button>
+        <button
+          type="button"
+          className={tab === "ask" ? "is-active" : ""}
+          onClick={() => switchTab("ask")}
+        >
+          <MessageCircle size={21} />
+          <span>질문</span>
         </button>
         <button
           type="button"
