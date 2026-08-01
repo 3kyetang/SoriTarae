@@ -32,19 +32,39 @@ export default function UpdatePasswordPage() {
     if (!supabase) return;
 
     let isMounted = true;
-    supabase.auth.getUser().then(({ data }) => {
+    let recoveryEventReceived = false;
+
+    const finishSessionCheck = (hasSession: boolean) => {
       if (!isMounted) return;
-      setHasRecoverySession(Boolean(data.user));
-      if (!data.user) {
+
+      setHasRecoverySession(hasSession);
+      setIsCheckingSession(false);
+
+      if (hasSession) {
+        setErrorMessage("");
+      } else {
         setErrorMessage(
-          "유효한 비밀번호 재설정 세션이 없습니다. 이메일을 다시 요청해 주세요.",
+          "이메일 확인 링크가 만료되었거나 올바르지 않습니다. 다시 시도해 주세요.",
         );
       }
-      setIsCheckingSession(false);
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        recoveryEventReceived = true;
+        finishSessionCheck(Boolean(session?.user));
+      }
+
+      if (event === "INITIAL_SESSION" && !recoveryEventReceived) {
+        finishSessionCheck(Boolean(session?.user));
+      }
     });
 
     return () => {
       isMounted = false;
+      subscription.unsubscribe();
     };
   }, [supabase]);
 
