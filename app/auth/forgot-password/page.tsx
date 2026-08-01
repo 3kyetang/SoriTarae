@@ -6,13 +6,14 @@ import { FormEvent, useMemo, useState } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { getAuthErrorMessage } from "@/lib/supabase/auth-errors";
 import {
-  createClient,
+  createPasswordRecoveryClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const supabase = useMemo(
-    () => (isSupabaseConfigured() ? createClient() : null),
+    () =>
+      isSupabaseConfigured() ? createPasswordRecoveryClient() : null,
     [],
   );
   const [email, setEmail] = useState("");

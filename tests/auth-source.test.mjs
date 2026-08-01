@@ -22,6 +22,7 @@ const signupTemplate = await source(
 const recoveryTemplate = await source(
   "../supabase/email-templates/reset-password.html",
 );
+const supabaseClient = await source("../lib/supabase/client.ts");
 
 test("implements the complete email and password auth flow", () => {
   assert.match(login, /auth\.signInWithPassword/);
@@ -41,6 +42,13 @@ test("uses the hosted Supabase password recovery email flow", () => {
   assert.match(updatePassword, /auth\.onAuthStateChange/);
   assert.match(updatePassword, /event === "PASSWORD_RECOVERY"/);
   assert.match(updatePassword, /event === "INITIAL_SESSION"/);
+  assert.match(forgotPassword, /createPasswordRecoveryClient/);
+  assert.match(updatePassword, /createPasswordRecoveryClient/);
+  assert.match(supabaseClient, /flowType: "implicit"/);
+  assert.match(supabaseClient, /persistSession: false/);
+  assert.match(supabaseClient, /autoRefreshToken: false/);
+  assert.match(updatePassword, /auth\/login\?password=updated/);
+  assert.match(login, /passwordStatus === "updated"/);
 });
 
 test("keeps the saving state active until diary embedding finishes", () => {

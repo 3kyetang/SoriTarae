@@ -20,15 +20,25 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const error = new URLSearchParams(window.location.search).get("error");
+    const passwordStatus = new URLSearchParams(
+      window.location.search,
+    ).get("password");
     const messageTimer = window.setTimeout(() => {
-      if (error !== "confirmation") return;
-      setErrorMessage(
-        "이메일 확인 링크가 만료되었거나 올바르지 않습니다. 다시 시도해 주세요.",
-      );
+      if (error === "confirmation") {
+        setErrorMessage(
+          "이메일 확인 링크가 만료되었거나 올바르지 않습니다. 다시 시도해 주세요.",
+        );
+      }
+      if (passwordStatus === "updated") {
+        setSuccessMessage(
+          "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.",
+        );
+      }
     }, 0);
 
     return () => window.clearTimeout(messageTimer);
@@ -102,6 +112,11 @@ export default function LoginPage() {
         {errorMessage && (
           <p className="auth-message is-error" role="alert">
             {errorMessage}
+          </p>
+        )}
+        {successMessage && (
+          <p className="auth-message is-success" role="status">
+            {successMessage}
           </p>
         )}
 
