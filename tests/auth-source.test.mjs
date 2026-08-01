@@ -15,6 +15,10 @@ const updatePassword = await source(
   "../app/auth/update-password/page.tsx",
 );
 const confirm = await source("../app/auth/confirm/route.ts");
+const recovery = await source("../app/auth/recovery/page.tsx");
+const confirmRecovery = await source(
+  "../app/auth/recovery/confirm/route.ts",
+);
 const home = await source("../app/page.tsx");
 const signupTemplate = await source(
   "../supabase/email-templates/confirm-signup.html",
@@ -33,12 +37,19 @@ test("implements the complete email and password auth flow", () => {
   assert.match(home, /auth\.signOut\(\)/);
 });
 
-test("keeps password recovery token parameters separate from the redirect URL", () => {
+test("sends password recovery emails to a prefetch-safe landing page", () => {
   assert.match(
     forgotPassword,
-    /redirectTo: `\$\{window\.location\.origin\}\/auth\/confirm`,/,
+    /redirectTo: `\$\{window\.location\.origin\}\/auth\/recovery`,/,
   );
-  assert.doesNotMatch(forgotPassword, /auth\/confirm\?next=/);
+  assert.match(recovery, /action="\/auth\/recovery\/confirm"/);
+  assert.match(recovery, /method="post"/);
+  assert.match(recovery, /name="token_hash"/);
+  assert.doesNotMatch(recovery, /verifyOtp/);
+  assert.match(confirmRecovery, /export async function POST/);
+  assert.match(confirmRecovery, /auth\.verifyOtp/);
+  assert.match(confirmRecovery, /type: "recovery"/);
+  assert.match(confirmRecovery, /\/auth\/update-password/);
 });
 
 test("keeps the saving state active until diary embedding finishes", () => {
