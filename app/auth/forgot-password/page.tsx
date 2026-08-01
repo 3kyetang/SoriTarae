@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
 
     setIsSubmitting(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/recovery`,
+      redirectTo: `${window.location.origin}/auth/update-password`,
     });
     setIsSubmitting(false);
 
