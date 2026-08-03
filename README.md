@@ -167,7 +167,7 @@ npm test
 
 #### Vercel — Next.js 앱
 
-1. GitHub의 `3kyetang/voicelog` 저장소를 Vercel 프로젝트로 연결합니다.
+1. GitHub의 `3kyetang/SoriTarae` 저장소를 Vercel 프로젝트로 연결합니다.
 2. Framework Preset은 `Next.js`, Root Directory는 저장소 루트로 설정합니다.
 3. 다음 환경변수를 Production에 등록합니다.
 
@@ -230,7 +230,7 @@ npm test
 ## 7. 결과물 링크
 
 - **운영 서비스:** [https://soritarae.vercel.app](https://soritarae.vercel.app)
-- **GitHub 저장소:** [https://github.com/3kyetang/voicelog](https://github.com/3kyetang/voicelog)
+- **GitHub 저장소:** [https://github.com/3kyetang/SoriTarae](https://github.com/3kyetang/SoriTarae)
 
 ---
 
