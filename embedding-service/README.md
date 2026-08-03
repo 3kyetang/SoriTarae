@@ -11,7 +11,7 @@ environment in a short path so installation does not exceed the legacy path
 length limit. Run:
 
 ```powershell
-$soriVenv = "C:\Users\gangt\Documents\Codex\.venvs\soritarae"
+$soriVenv = "C:\soritarae-venv"
 & "$soriVenv\Scripts\python.exe" -m pip install -r requirements.txt
 ```
 
